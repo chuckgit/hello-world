@@ -1,0 +1,4055 @@
+TTED.TSK.P.TCEM.EDITMAC
+$$$BEG CIXXMAC
+/* REXX */
+/* BASED ORIGINALLY UPON ASMT/CIXXASM */
+ ADDRESS ISPEXEC
+ "ISREDIT MACRO PROCESS"
+ T=0
+ EDTRC = 4
+ "ISPEXEC VGET (EXECSEL) ASIS"
+ ASMSTOP=0
+ "ISPEXEC VGET (ASMDSN ASMSTOP) ASIS"
+ IF RC ^= 0 THEN SIGNAL EXITRC10
+  "ISPEXEC VGET (XPSW) ASIS"
+ ASMPROC=CIXXASM
+ KIXCOPT=''
+ IF EXECSEL='COBCOMP' THEN "ISPEXEC VGET (KIXCOPT) ASIS"
+ IF EXECSEL='COBCOMP' |,
+    EXECSEL='CPPCOMP' | EXECSEL='KIXCCOMP' | EXECSEL='ASMMOD' THEN DO
+    "ISPEXEC VGET (ASMMBR) ASIS"
+    ASMPROC=BAXXASM
+    IF EXECSEL = 'ASMMOD' THEN EXECSEL='AMOD'
+    SIGNAL NOTINJCL
+    END
+ IF EXECSEL ^= 'ASMTAB' & EXECSEL ^= 'ASMCLA' & ,
+                EXECSEL ^= 'ASMMAP' THEN SIGNAL NOTINJCL
+ "ISPEXEC VGET (ASMMBR) ASIS"
+ IF RC ^= 0 THEN SIGNAL EXITRC10
+  "ISPEXEC VGET (ASMINCNO) ASIS"
+ IF RC ^= 0 THEN SIGNAL NOINCLUD
+ T=ASMINCNO
+ IF T = 0 THEN SIGNAL NOINCLUD
+ DO I = 1 TO T
+  "ISPEXEC VGET (ASMIN"I") ASIS"
+  IF RC ^= 0 THEN DO
+   ASMSTOP=0
+   SIGNAL NOINCLUD
+   T=I-1
+   END
+  END
+NOINCLUD:
+ SRCHSTR= "'LKEDDATA GOES AFTER THIS' FIRST"
+ ASMSLIB='//ASMSLIB.SYSLIB '
+ LKEDSLIB='//LKED.'
+ DO I = 1 TO T
+  INTERPRET "TMP = ASMIN"I
+  IF SUBSTR(TMP,1,2) = '//' THEN DO
+   IF SUBSTR(TMP,1,3) = '// ' THEN DO
+    TMP=ASMSLIB||SUBSTR(TMP,4)
+    ASMSLIB='// '
+    END
+    ELSE DO
+    TMP=LKEDSLIB||SUBSTR(TMP,3)
+    END
+   "ISREDIT (LSTLNM) = LINENUM .ZLAST"
+   ROW=LSTLNM
+   END
+   ELSE DO
+   IF SUBSTR(TMP,1,2) ^= 'IN' THEN ITERATE
+   ELSE TMP = ' '||TMP
+   "ISREDIT FIND "SRCHSTR
+   IF RC ^= 0 THEN SIGNAL NOTINJCL
+   "ISREDIT (ROW,COL) = CURSOR"
+   IF RC ^= 0 THEN SIGNAL EXITRC10
+   END
+  "ISREDIT LINE_AFTER "ROW" = '"TMP"'"
+  IF RC ^= 0 THEN SIGNAL EXITRC10
+  END
+NOTINJCL:
+ ASMINCNO = 0
+ "ISPEXEC VPUT (ASMINCNO) ASIS"
+ "ISPEXEC VGET (CVTDGRP CVTDGRPC) ASIS"
+ IF RC ^= 0 THEN DO
+  CVTDGRP='GRP?'
+  END
+  ELSE DO
+  SELECT
+   WHEN CVTDGRP='GRP1' THEN CVTDGRP='GROUPI'
+   WHEN CVTDGRP='GRP2' THEN CVTDGRP='GROUPII'
+   WHEN CVTDGRP='GRP3' THEN CVTDGRP='GROUPIII'
+   WHEN CVTDGRP='GRP4' THEN CVTDGRP='GROUPIV'
+   WHEN CVTDGRP='GRP5' THEN CVTDGRP='GROUPV'
+   WHEN CVTDGRP='GY2V' THEN CVTDGRP='GII Y2K'
+   WHEN CVTDGRP='GY2Y' THEN CVTDGRP='GI  Y2K'
+   OTHERWISE CVTDGRP='NOGROUP'
+   END
+  END
+ IF EXECSEL = 'RDORUN' | EXECSEL = 'RDXRUN' THEN DO
+  /* TRACE I */
+  "ISPEXEC VGET (CIXXAPL ASMMBR) ASIS"
+  COPYSELP = 'MYAPLID('||CIXXAPL||') TBLRESP(PARM) '||,
+   'SELN(GRPLIST) MYDS(PUSH)'
+   /*
+  CALL COPYSEL COPYSELP
+  IF RESULT ^= 0 THEN SIGNAL EXITRC8
+  PULL COPYSELN
+  COPYSELN=SUBSTR(COPYSELN,2)
+  FFX='FF'X
+  PARSE VAR COPYSELN WDL (FFX) COPYSELR (FFX) .
+  GLWP=WORDPOS('GRPLIST',WDL)-1
+  IF GLWP < 1 THEN DO
+   KIX#GRP=ASMMBR
+   SIGNAL OUTGPLST
+   END
+  FP = 0
+  DO L=1 TO GLWP
+   FP=POS('{',COPYSELR,FP+1)
+   END
+  COPYSELR=SUBSTR(COPYSELR,FP+1)
+  PARSE VAR COPYSELR KIX#GRP '}' .
+  */
+  IF KIX#GRP = '' THEN KIX#GRP=ASMMBR
+  KIX#GRP=TRANSLATE(KIX#GRP,' ',',')
+  END
+OUTGPLST:
+ "ISPEXEC VGET (HJCLIND) ASIS"
+ EDSN=TRANSLATE(ASMDSN,' ','.')
+ DSHLQ=WORD(EDSN,1)
+ KIXTYP=SUBSTR(DSHLQ,LENGTH(DSHLQ),1)
+ AW=4
+ KIXREL=WORD(EDSN,3)
+ IF LENGTH(KIXREL) = 1 THEN DO
+  KIXREL=WORD(EDSN,4)
+  AW=5
+  END
+ KIXREL3=SUBSTR(KIXREL,2)
+ IF DATATYPE(KIXREL3) ^= 'NUM' THEN DO
+  KIXREL3= '550'
+  KIXREL1='55'
+  KIXREL = 'R550'
+  KIXBASE = '720'
+  END
+ SELECT
+  WHEN KIXREL3 = '550' THEN DO
+   KIXREL3= '550'
+   KIXREL1='55'
+   KIXREL = 'R550'
+   KIXBASE = '720'
+   END
+  WHEN KIXREL3 = '540' THEN DO
+   KIXREL3= '540'
+   KIXREL1='54'
+   KIXREL = 'R540'
+   KIXBASE = '710'
+   END
+   OTHERWISE DO
+   KIXREL1=SUBSTR(KIXREL3,1,2)
+   KIXREL = 'R'||KIXREL3
+   KIXBASE = 'BASE_CODE'
+   END
+  END
+ AUXTRPGM='DFHTU'||KIXBASE
+ DMPRPGM='DFHDU'||KIXBASE
+ IPCSPDX='DFHPD'||KIXBASE
+ AMP='FF'X
+ FRXCODE=AMP||'FRCODE'
+ FRXLIB=AMP||'FRLIB'
+ /*          THIS CODE NOT NEEDED - USE KIXBASE TO GET BASE LEVEL
+ SELECT
+  WHEN KIXREL='R520' THEN DO
+   AUXTRPGM='DFHTU690'
+   DMPRPGM='DFHDU690'
+   IPCSPDX='DFHPD690'
+   END
+  WHEN KIXREL='R540' THEN DO
+   AUXTRPGM='DFHTU710'
+   DMPRPGM='DFHDU710'
+   IPCSPDX='DFHPD710'
+   END
+  WHEN KIXREL='R320' THEN DO
+   AUXTRPGM='DFHTU650'
+   DMPRPGM='DFHDU650'
+   IPCSPDX='DFHPD650'
+   END
+  WHEN KIXREL='R420' THEN DO
+   AUXTRPGM='DFHTU670'
+   DMPRPGM='DFHDU670'
+   IPCSPDX='DFHPD670'
+   END
+  OTHERWISE
+  END
+*/
+ KIXAPLD=WORD(EDSN,AW)
+ COMMON=WORD(EDSN,AW)
+ KIXPRML=''
+ DO I = 1 TO AW
+  KIXPRML=KIXPRML||WORD(EDSN,I)||'.'
+  END
+ IF KIXAPLD = 'CNTL' THEN KIXAPLD='COMMON'
+ IF KIXAPLD = 'COMMON' THEN KIXPRMLX='TABLE.SOURCE'
+  ELSE KIXPRMLX='PARMLIB'
+ KIXJCLL=KIXPRML||'JCLLIB'
+ KIXPRML=KIXPRML||KIXPRMLX
+ NOTFYID=SYSVAR(SYSUID)
+ NOAUTOS = 0
+ IF EXECSEL='ASMTAB' THEN DO
+  IF SUBSTR(ASMMBR,1,3) ^= 'DFH' THEN SIGNAL EXITRC10
+  MYTAB = SUBSTR(ASMMBR,4,3)
+  IF LENGTH(ASMMBR) > 6 THEN MYSUFX = SUBSTR(ASMMBR,7)
+   ELSE MYSUFX = ''
+  EXECSEL = 'ASM'
+  SIGNAL DOCHGNS
+  END
+ IF EXECSEL='ASMCLA' THEN DO
+  MYTAB = 'ASMP'
+  EXECSEL = 'CLA'
+  SIGNAL DOCHGNS
+  END
+ IF EXECSEL='ASMMAP' THEN DO
+  MYTAB = 'ASMM'
+  EXECSEL = 'MAP'
+  IF LENGTH(ASMMBR) > 7 THEN ASMMBRD = SUBSTR(ASMMBR,1,7)
+   ELSE ASMMBRD=ASMMBR
+  ASMMBRD=ASMMBRD||"D"
+  SIGNAL DOCHGNS
+  END
+ IF EXECSEL='ASMMOD' THEN DO
+  MYTAB = 'AMOD'
+  EXECSEL = 'AMOD'
+  SIGNAL DOCHGNS
+  END
+ EXECSEL=LEFT(EXECSEL,3)
+ MYTAB=EXECSEL
+ MYSUFX=''
+DOCHGNS:
+ IF NOTFYID = 'TCEM' THEN MYSYSLMD='TTED.TSK.P.TCEM.LOADLIB'
+  ELSE MYSYSLMD='YOUR.SYSLMOD.GOES.HERE'
+ LKSYSL='YOUR.SYSLIB.GOES.HERE'
+ IF NOTFYID ^= 'TCEM' THEN "ISREDIT AUTOSAVE = OFF NOPROMPT"
+  ELSE DO
+   LKSYSL='TTED.TSK.P.TCEM.LOADLIB'
+   MYSYSLMD = 'TTED.TSK.P.TCEM.LOADLIB('ASMMBR')'
+   END
+  /* TRACE I */
+ ASMTABJ = NOTFYID||LEFT(MYTAB||SUBSTR(MYSUFX,2,1),4)
+ "ISREDIT CHANGE 'ASMTABJ' '"ASMTABJ"' ALL"
+ IF RC > 0 THEN DO
+  "ISREDIT DELETE ALL NX"
+  "ISREDIT COPY ZZZZ"EXECSEL" BEFORE .ZFIRST"
+  IF RC ^=0 THEN SIGNAL NOSTEP
+  "ISREDIT SAVE"
+  "ISREDIT CHANGE 'ASMTABJ' '"ASMTABJ"' ALL"
+  IF RC > 0 THEN SIGNAL NOSTEP
+  END
+  IF KIXTYP='A' THEN DO
+   "ISPEXEC VGET (KIXCTYP) ASIS"
+   IF RC ^= 0 THEN KIXCTYP='P'
+   END
+   ELSE KIXCTYP=KIXTYP
+ MYDT=DATE('S')||TIME('H')
+ "ISREDIT CHANGE 'MYSUFX' '"MYSUFX"' ALL"
+ "ISREDIT CHANGE 'NOTFYID' '"NOTFYID"' ALL"
+ "ISREDIT CHANGE 'KIXPRML' '"KIXPRML"' ALL"
+ "ISREDIT CHANGE 'KIXJCLL' '"KIXJCLL"' ALL"
+ "ISREDIT CHANGE 'MYTAB' '"MYTAB"' ALL"
+ "ISREDIT CHANGE 'AUXTRPGM' '"AUXTRPGM"' ALL"
+ "ISREDIT CHANGE 'DMPRPGM' '"DMPRPGM"' ALL"
+ "ISREDIT CHANGE 'ASMJCLPROC' '"ASMPROC"' ALL"
+ "ISREDIT CHANGE 'SSITIME' '"MYDT"' ALL"
+ "ISREDIT CHANGE 'KIXREL1' '"KIXREL1"' ALL"
+ "ISREDIT CHANGE 'KIXREL3' '"KIXREL3"' ALL"
+ "ISREDIT CHANGE 'KIXREL' '"KIXREL"' ALL"
+ "ISREDIT CHANGE 'KIXTYP' '"KIXTYP"' ALL"
+ "ISREDIT CHANGE 'KIXCTYP' '"KIXCTYP"' ALL"
+ "ISREDIT CHANGE 'CVTDGRP' '"CVTDGRP"' ALL"
+ "ISREDIT CHANGE 'ASMMBR' '"ASMMBR"' ALL"
+ "ISREDIT CHANGE 'MAPMBRD' '"ASMMBRD"' ALL"
+ "ISREDIT CHANGE 'ASMDSNAME' '"ASMDSN"' ALL"
+ "ISREDIT CHANGE 'MYSYSLIB' '"LKSYSL"' ALL"
+ "ISREDIT CHANGE 'MYSYSLMOD' '"MYSYSLMD"' ALL"
+ "ISREDIT CHANGE 'KIXXPPO' '"XPSW"' ALL"
+ "ISREDIT CHANGE 'KIXCOPT' '"KIXCOPT"' ALL"
+ "ISREDIT CHANGE 'KIXAPLD' '"KIXAPLD"' ALL"
+ IF KIXREL3 = '320' THEN DO
+  "ISREDIT CHANGE 'KIXRDOFILE' 'BAPPL'"
+  END
+  ELSE DO
+  "ISREDIT CHANGE 'KIXRDOFILE' 'BRAPPL'"
+  END
+ IF EXECSEL = 'RDO' THEN DO
+  "ISREDIT CHANGE 'KIX#GRP' '"KIX#GRP"' ALL"
+  SIGNAL NOTRDX
+  END
+ IF EXECSEL^='RDX' THEN SIGNAL NOTRDX
+ "ISREDIT CHANGE 'FRXCODE' '"FRXCODE"' ALL"
+ "ISREDIT CHANGE 'FRXLIB' '"FRXLIB"' ALL"
+ "ISREDIT CHANGE X'FF' '&' ALL"
+ IF KIX#GRP = '' THEN KIX#GRP='#RDOMBR#'
+ EXTS.1 = 'EXTRACT GROUP(KIX#GRP'
+ EXTI.1 = 'EXTRACT GROUP('
+ EXTS.2 = 'EXTRACT LIST(KIX#APLD'
+ EXTI.2 = 'EXTRACT LIST('
+ DO J = 1 TO 2
+  FXSI=EXTI.J
+  FXS=EXTS.J
+  "ISREDIT FIND '"FXS"' FIRST"
+  IF RC ^= 0 THEN EXIT
+  NW=WORDS(KIX#GRP)
+  IF NW > 1 THEN DO
+   "ISREDIT (GROW,GCOL) = CURSOR"
+   "ISREDIT (MYLNE) = LINE "GROW
+   NWM1=NW-1
+   DO I = 1 TO NWM1
+    "ISREDIT LINE_AFTER "GROW" = '"MYLNE"'"
+    END
+   END
+  FQLF='FIRST'
+  DO I = 1 TO NW
+   "ISREDIT CHANGE '"FXS"' '"FXSI||WORD(KIX#GRP,I)"' "FQLF
+   FQLF='NEXT'
+   END
+  END
+ "ISREDIT CHANGE 'KIX#GRP' '"WORD(KIX#GRP,1)"' ALL"
+NOTRDX:
+ IF ASMSTOP = 0 THEN SIGNAL STOPED
+ IF NOAUTOS = 1 THEN SIGNAL NOSTEP
+ "ISPEXEC VGET (HJCLIND) ASIS"
+ IF RC = 0 THEN DO
+  IF HJCLIND = 'HOLD' THEN SIGNAL STOPED
+  END
+ "ISREDIT SUBMIT"
+ EDTRC = RC
+ SIGNAL XCAN
+EXITRC10:
+ EDTRC = 10
+XCAN:
+ "ISPEXEC VPUT (EDTRC) ASIS"
+ "ISREDIT CANCEL"
+ RETURN EDTRC
+EXITRC8:
+ ZEDSMSG = 'COPYSEL ERROR'
+ ZEDLMSG = 'ERROR. EDIT MANUALLY, SUBMIT, THEN CANCEL'
+ SIGNAL WRITIT
+NOSTEP:
+ ZEDSMSG = 'ED/SUB CANCEL'
+ ZEDLMSG = 'ERROR. EDIT MANUALLY, SUBMIT, THEN CANCEL'
+ SIGNAL WRITIT
+STOPED:
+ ZEDSMSG = 'STOPED.ED/SUB/CAN'
+ ZEDLMSG = 'STOP REQUESTED. EDIT JCL, SUB, THEN CANCEL'
+ SIGNAL WRITIT
+WRITIT:
+ "ISPEXEC SETMSG MSG(ISRZ000)"
+ EDTRC = 4
+DONEIN:
+ "ISPEXEC VPUT (EDTRC) ASIS"
+ RETURN
+###END CIXXMAC
+$$$BEG PV
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA PV       - POP VIEW TO AN ADDITIONAL VIEW SESSION USE %PV */
+/* CEMHELP PV       - ISPF VIEW MACRO BASED, 'POP VIEW', IS USED     */
+/* CEMHELP          - BEGIN A NEW VIEW SESSION ON THE CURRENT DATASET*/
+/* CEMHELP          - WITHOUT DISTURBING THE CURRENT EDIT SESSION.   */
+/* CEMHELP          - NOTE-CONFLICT WITH OTHER PV SO USE %PV         */
+/* CEMHELP END                                                       */
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO NOPROCESS (MBR)"
+ IF RC ^= 0 THEN SIGNAL EXITRC8
+ "ISREDIT (OURDSN) = DATASET"
+ IF MBR = '' THEN  SIGNAL ONLYDSN
+ MBR = STRIP(MBR,'B')
+ IF LENGTH(MBR) > 8 THEN SIGNAL ONLYDSN
+ UPPER MBR
+ IF DATATYPE(SUBSTR(MBR,1,1)) ^= 'CHAR' THEN SIGNAL ONLYDSN
+ OURDSN=OURDSN'('MBR')'
+ONLYDSN:
+ "ISPEXEC VGET (ELVL) ASIS"
+ IF RC ^= 0 THEN ELVL=1
+  ELSE ELVL=ELVL+1
+  "ISPEXEC VPUT (ELVL) ASIS"
+ "ISPEXEC VIEW DATASET('"OURDSN"')"
+ XC = RC
+ "ISPEXEC VGET (ELVL) ASIS"
+ IF RC^=0 THEN ELVL=0
+ IF XC ^= 0 THEN DO
+  ZEDSMSG = 'PV ERROR 'XC
+  ZEDLMSG = 'PV ERROR OCCURRED. 'ELVL' MAINTAINED'
+  SIGNAL WRITIT
+  END
+ ELVL=ELVL-1
+  "ISPEXEC VPUT (ELVL) ASIS"
+ ZEDSMSG = 'ELVL='ELVL
+ ZEDLMSG = 'CURRENT EDIT LEVEL 'ELVL' (1 IS LOWEST)'
+ SIGNAL WRITIT
+EXITRC8:
+ ZEDSMSG = 'INVOKATION'
+ ZEDLMSG = 'INVOKE MACROS USING ENTER, NOT TSO INVOKED'
+ SIGNAL WRITIT
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+###END PV
+$$$BEG CTGSTATS
+ /* REXX */
+ /* TRACE ?I */
+ SUID=SYSVAR(SYSUID)
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO PROCESS"
+ /* THREAD INFO */
+ /* INTERVAL COLLECTIONS */
+ STATSWDS='CTG8239I CS_SNETNAME CS_CALLOC CS_IALLOCFAIL CS_IALLREQ '||,
+         'CS_IREQDATA CS_IRESPDATA CS_ICONNFAIL CS_ILOSTCONN '||,
+         'CS_IIDLETIMEOUT CM_SMAX CM_CCURR CM_CALLOC CM_ITIMEOUTS '||,
+         'CM_IALLOCHI GD_IALLREQ GD_IREQDAT GD_IRESPDATA GD_LAVRESP '||,
+         'GD_IAVRESP WT_SMAX WT_CCURR WT_CALLOC WT_ITIMEOUTS '||,
+         'WT_IALLOCHI'
+ /* GC RATIO INFO */
+ /* LIFETIME TOTALS */
+ STATSWDS='CTG8239I CS_CALLOC CS_LREALLOC CS_LALLREQ CS_LREQDATA'
+ STATSWDS='CTG8239I '||,
+          'SE_CELOAL SE_C31MAX SE_CHEAPGCMIN SE_SHEAPMAX SE_LGCCOUNT'
+ #STATSWDS=WORDS(STATSWDS)
+ "ISREDIT EXCLUDE .ZFIRST .ZLAST ALL"
+ "ISREDIT FIND 'RESPONSE RECEIVED FROM CICS TRANSACTION' X ALL"
+ DO I = 1 TO #STATSWDS
+  WD=WORD(STATSWDS,I)
+  "ISREDIT FIND '"WD"' X ALL"
+  END
+ "ISREDIT UP MAX"
+ "ISREDIT DELETE X ALL"
+ WDLST = ' *WORDLIST: '||STATSWDS
+ "ISREDIT LINE_BEFORE .ZFIRST  = '"WDLST"'"
+ "ISREDIT (OURMBR) = MEMBER"
+ NEWMBR = '$'||SUBSTR(OURMBR,1,5)
+ "ISREDIT REPLACE "NEWMBR" .ZFIRST .ZLAST"
+ "ISREDIT CANCEL"
+ RETURN 0
+###END CTGSTATS
+$$$BEG EDTMBRS
+ /* REXX */
+ /* CEMHELP BEGIN                                                   */
+ /* CEMHELA edtmbrs  - edit all mbrs in pds with a editmac          */
+ /* CEMHELP edtmbrs  - ispf based edit macro designed to            */
+ /* CEMHELP          - accept a parm naming a secondary editmacro   */
+ /* CEMHELP          - and invoke the edit macro on the rest of the */
+ /* CEMHELP          - pds, with exception of current member, and   */
+ /* CEMHELP          - an exclude list specifies by the second      */
+ /* CEMHELP          - optional parm. this parm can be a wildcarded */
+ /* CEMHELP          - mbr* name and/or a comma separated list      */
+ /* CEMHELP          - enclosed in quotes                           */
+ /* CEMHELP END                                                     */
+/*REXX****************************************************************/
+/*   ISPF edit macro to process all members of partitioned data set, */
+/*   running a second, user-specified, ISPF edit macro against each  */
+/*   member.                                                         */
+/* based on SYS1.SISPSAMP(ISRMBRS)                                   */
+/*   To run:                                                         */
+/*    Enter "edtmbrs macname 'member list'" edit macro               */
+/*      macname is a edit macro                                      */
+/*      optional 'member list' which is either                       */
+/*      <include,member,list>                                        */
+/*      >exclude,member,list<                                        */
+/*      notice the use of <> and >< to connote your target members   */
+/*                                                                   */
+/*      use * suffix to wildcard the tail of a set of member names   */
+/* expl: edtmbrs autoedmc <opgg1*,opgg2*,opgg4*>                     */
+/* run against each member. highest rc is reported in long panel msg */
+/*********************************************************************/
+  SIGNAL ON HALT NAME HTRESET
+  SIGNAL ON SYNTAX NAME SXRESET
+Address ispexec
+ "ISPEXEC CONTROL ERRORS RETURN"
+/*trace ?i */
+'ISREDIT MACRO (NESTMAC bypassls)'
+ notemsg = ''
+ notemsg2 = ''
+ notemsg3 = ''
+ if nestmac = '' then signal badmac
+ bpwdct=0; bpwdl='';tmpwdls='';tmpwdl=''
+ inclct=0; inwdl='';inclls=''
+ if bypassls = '' then signal all_mbrs
+ upper bypassls
+ if substr(bypassls,1,1) = '<' then signal got_incl_lst
+ if substr(bypassls,1,1) \= '>' then signal signal badlist
+got_excl_lst:
+ if substr(bypassls,length(bypassls),1) \= '<' then,
+  signal signal badlist
+ bypassls = translate(bypassls,'  ','><')
+  bypassls = translate(bypassls,' ',',')
+  bpwdct=words(bypassls)
+  if bpwdct < 1 then signal badexclude
+  do i = 1 to bpwdct
+   twd = word(bypassls,i)
+   if wordpos(twd,tmpwdls) \=0 then iterate
+   wcpos=pos('*',twd)
+   if wcpos = 0 then twdl = 8
+    else twdl = wcpos - 1
+   tmpwdls = tmpwdls||' '||twd
+   tmpwdl = tmpwdl||' '||twdl
+   end
+  bypassls = tmpwdls
+  bpwdct=words(bypassls)
+  bpwdl = tmpwdl
+  signal all_mbrs
+got_incl_lst:
+ if substr(bypassls,length(bypassls),1) \= '>' then,
+  signal signal badlist
+  inclls = translate(bypassls,'  ','><')
+  inclls = translate(inclls,' ',',')
+  inwdct=words(inclls)
+  if inwdct < 1 then signal badinclude
+  do i = 1 to inwdct
+   twd = word(inclls,i)
+   if wordpos(twd,tmpwdls) \=0 then iterate
+   wcpos=pos('*',twd)
+   if wcpos = 0 then twdl = 8
+    else twdl = wcpos - 1
+   tmpwdls = tmpwdls||' '||twd
+   tmpwdl = tmpwdl||' '||twdl
+   end
+  bypassls = ''
+  inclls = tmpwdls
+  inwdct=words(inclls)
+  inwdl = tmpwdl
+/*********************************************************************/
+/* Get dataid for data set and issue LMOPEN                          */
+/*********************************************************************/
+all_mbrs:
+ "ISPEXEC VGET (ZSCRMAXD,ZSCRMAXW) ASIS"
+ IF RC = 0 THEN DO
+  SCRNWDTH= ZSCRMAXW
+  SCRNDEPTH= ZSCRMAXD
+  END
+  ELSE DO
+  "ISREDIT (DATAWDTH) = DATA_WIDTH"
+  SCRNWDTH = DATAWDTH
+  END
+ /* A NOTELINE HAS A DATA LENGTH OF 72, REGARDLESS OF THE DATA WIDTH */
+ IF SCRNWDTH > 72 THEN SCRNWDTH = 72
+ /* ***                                                              */
+ "ISREDIT (NOTESQRY) = NOTES"
+ NOTESQRY = NOTESQRY
+ IF NOTESQRY \= 'ON' THEN DO
+  "ISREDIT NOTES = 'ON'"
+  END
+'ISREDIT (data1) = DATAID'
+'ISREDIT (CURMEM) = MEMBER'
+xc=0
+try_agn:
+Address ispexec 'LMOPEN DATAID('data1') OPTION(INPUT)'
+if rc > 4 then do
+ if xc \= 0 then signal badopen
+ Address ispexec 'LMMLIST DATAID('data1') OPTION(FREE)'
+ Address ispexec 'LMCLOSE DATAID('data1')'
+ xc = 1
+ signal try_agn
+ end
+member = ' '
+lmrc = 0
+  hirc = 0
+bpmbrct = 0
+bpmbrlst = ''
+inmbrct = 0
+inmbrlst = ''
+/*********************************************************************/
+/* Loop through all members in the PDS, issuing the EDIT service for */
+/* each.  The macro specified on the ALLMEMS invocation is passed as */
+/* an initial macro on the EDIT service call.                        */
+/*********************************************************************/
+ /* trace ?i */
+Do While lmrc = 0
+  Address ispexec 'LMMLIST DATAID('data1') OPTION(LIST),
+                  MEMBER(MEMBER) STATS(NO)'
+  lmrc = rc
+  If lmrc = 0 & member ^= curmem Then
+    do
+     if bpwdct > 0 then do
+      bypassmbr = ''
+      do i = 1 to bpwdct
+       tstwdl = word(bpwdl,i)
+       tstwd = left(word(bypassls,i),tstwdl)
+       if substr(tstwd,1,tstwdl) = substr(member,1,tstwdl) then do
+        bpmbrct = bpmbrct + 1
+        bpmbrlst = bpmbrlst ||' '||member
+        bypassmbr=member
+        leave
+        end
+       end
+      end
+      else do
+      if inwdct > 0 then do
+       bypassmbr = member
+       do i = 1 to inwdct
+        tstwdl = word(inwdl,i)
+        tstwd = left(word(inclls,i),tstwdl)
+        if substr(tstwd,1,tstwdl) = substr(member,1,tstwdl) then do
+         bypassmbr = ''
+         leave
+         end
+        end
+       end
+      end
+      if bypassmbr /= '' then do
+         bpmbrct = bpmbrct + 1
+         bpmbrlst = bpmbrlst ||' '||member
+         end
+      else do
+      Say 'Processing member' member
+      inmbrct = inmbrct + 1
+      inmbrlst = inmbrlst ||' '||member
+      Address ispexec 'EDIT DATAID('data1') MEMBER('member')
+                      MACRO('nestmac')'
+      if rc > hirc then hirc = rc
+      end
+    end
+End
+
+/* trace ?i */
+/*********************************************************************/
+/* Free the member list and close the dataid for the PDS.            */
+/*********************************************************************/
+Address ispexec 'LMMLIST DATAID('data1') OPTION(FREE)'
+Address ispexec 'LMCLOSE DATAID('data1')'
+
+ ZEDSMSG = 'EDTMBRS successful:'inmbrct
+ ZEDLMSG = 'EDTMBRS mbrct:'inmbrct':bypct:'bpmbrct
+ notemsg = 'INFO: Successful execution of EDTMBRS with EDITMAC('||,
+  nestmac||'), processing:'||inmbrct||':members.'
+ notemsg2 = 'Processed list:'||inmbrlst
+ if bpmbrct > 0 then do
+ notemsg3 = 'Exclude count:'bpmbrct':Excluded member list:'||bpmbrlst
+  end
+ signal writit
+
+badlist:
+ ZEDSMSG = 'Bad incl|excl list'
+ ZEDLMSG = 'Bad incl|excl list: brackets unmatched?'
+ notemsg = 'Error: Optional include or exclude list must be indicate'||,
+  'd by using the appropriate matching bracket <> or ><'
+ signal writit
+badinclude:
+ ZEDSMSG = 'Include empty'
+ ZEDLMSG = 'Include list did not contain entries. there is no default'
+ notemsg = 'Include list did not contain entries. there is no default'
+ signal writit
+badexclude:
+ ZEDSMSG = 'Exclude empty'
+ ZEDLMSG = 'Exclude list did not contain entries. there is no default'
+ notemsg = 'Exclude list did not contain entries. there is no default'
+ signal writit
+badopen:
+ ZEDSMSG = 'could not lmopen:'||rc
+ ZEDLMSG = 'could not lmopen this dataset. rc:'rc
+ notemsg = 'Error: Could not open this DSN for member processing due'||,
+  ' to ispexec LMOPEN error code:'rc
+ signal writit
+badmac:
+ ZEDSMSG = 'REQUIRES MACRO'
+ ZEDLMSG = 'exec requires a edit macro to execute on each mbr'
+ notemsg = 'Error: Could run this EDITMAC. Required paramater which '||,
+  'specifies the EDITMAC was not provided.'
+ signal writit
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+ call donote
+ if notemsg2 \= '' then do
+  notemsg = notemsg2
+  call donote
+  end
+ if notemsg3 \= '' then do
+  notemsg = notemsg3
+  call donote
+  end
+ IF NOTESQRY \= 'ON' THEN DO
+  "ISREDIT NOTES = '"NOTESQRY"'"
+  END
+ return
+donote:
+ notemsg=strip(notemsg,'t')
+ XL = LENGTH(notemsg)
+ /* ROUTINE TO SPLIT A LARGE MESSAGE ON NOTLINES THAT FIT ON SCREEN */
+  IF XL < SCRNWDTH THEN DO
+  "ISREDIT LINE_BEFORE ".zfirst" = NOTELINE '"notemsg"'"
+  END
+  ELSE DO
+  RML = SCRNWDTH
+  CURPOS = 1
+  DO WHILE CURPOS <= XL
+   RML = (XL - CURPOS) + 1
+   IF RML > SCRNWDTH THEN RML = SCRNWDTH
+   TMPLN = SUBSTR(notemsg,CURPOS,RML)
+  "ISREDIT LINE_BEFORE ".zfirst" = NOTELINE '"TMPLN"'"
+   CURPOS = CURPOS + RML
+   END
+  END
+ /* ROUTINE TO SPLIT A LARGE MESSAGE ON NOTLINES THAT FIT ON SCREEN */
+  return
+HARESET:
+ ZEDSMSG = 'SIGNAL Halt'
+ ZEDLMSG = 'SIGNAL Halt caught! Aborting!'
+ signal doreset
+SXRESET:
+ ZEDSMSG = 'SIGNAL Syntax:'sigl
+ ZEDLMSG = 'SIGNAL SYNTAX failure line:'sigl':! Aborting!'
+ signal doreset
+DORESET:
+ "ISREDIT RESET"
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+  EXIT
+###END EDTMBRS
+$$$BEG AUTOEDMC
+/* REXX */
+ ADDRESS ISPEXEC
+ "ISREDIT MACRO PROCESS"
+ FNDCT = 0
+ "ISREDIT FIND 'CTG8239I' ALL"
+ IF RC > 0 THEN DO
+  "ISREDIT END"
+  RETURN 0
+  END
+  ELSE DO
+  "ISREDIT END"
+  RETURN FNDCT
+###END AUTOEDMC
+$$$BEG EXPLNOTE
+ /* REXX */
+ /* A NOTELINE HAS A DATA LENGTH OF 72, REGARDLESS OF THE DATA WIDTH */
+  TRACE ?I
+  SIGNAL ON HALT NAME DORESET
+  SIGNAL ON SYNTAX NAME DORESET
+ X='THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE '||,
+   'THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE '||,
+   'THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE'
+ XL = LENGTH(X)
+ SUID=SYSVAR(SYSUID)
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO PROCESS"
+ "ISPEXEC VGET (ZSCRMAXD,ZSCRMAXW) ASIS"
+ IF RC = 0 THEN DO
+  SCRNWDTH= ZSCRMAXW
+  SCRNDEPTH= ZSCRMAXD
+  END
+  ELSE DO
+  "ISREDIT (DATAWDTH) = DATA_WIDTH"
+  SCRNWDTH = DATAWDTH
+  END
+ /* A NOTELINE HAS A DATA LENGTH OF 72, REGARDLESS OF THE DATA WIDTH */
+ IF SRCNWDTH > 72 THEN SCRNWDTH = 72
+ /* ***                                                              */
+ "ISREDIT (NOTESQRY) = NOTES"
+ NOTESQRY = NOTESQRY
+ IF NOTESQRY \= 'ON' THEN DO
+  "ISREDIT NOTES = 'ON'"
+  END
+ "ISREDIT (FSTLNE) = LINE .ZFIRST"
+  DSEMSG='THIS NOTE APPEARS BEFORE THE .ZFIRST LINE'
+  "ISREDIT LINE_BEFORE ".ZFIRST" = NOTELINE '"DSEMSG"'"
+  DSEMSG='THIS NOTE APPEARS AFTER THE ZERO LINE'
+  "ISREDIT LINE_AFTER 0 = NOTELINE '"DSEMSG"'"
+  "ISREDIT (BEGROW) = CURSOR"
+  DSEMSG='THIS NOTE APPEARS BEFORE THE CURSOR'
+  "ISREDIT LINE_BEFORE "BEGROW" = NOTELINE '"DSEMSG"'"
+  DSEMSG='THIS NOTE APPEARS AFTER THE CURSOR'
+  "ISREDIT LINE_AFTER "BEGROW" = NOTELINE '"DSEMSG"'"
+  BEGROW = BEGROW + 1
+ /* ROUTINE TO SPLIT A LARGE MESSAGE ON NOTLINES THAT FIT ON SCREEN */
+  IF XL < SCRNWDTH THEN DO
+  "ISREDIT LINE_BEFORE "BEGROW" = NOTELINE '"X"'"
+  END
+  ELSE DO
+  RML = SCRNWDTH
+  CURPOS = 1
+  DO WHILE CURPOS <= XL
+   RML = (XL - CURPOS) + 1
+   IF RML > SCRNWDTH THEN RML = SCRNWDTH
+   TMPLN = SUBSTR(X,CURPOS,RML)
+   "ISREDIT LINE_BEFORE "BEGROW" = NOTELINE '"TMPLN"'"
+   CURPOS = CURPOS + RML
+   END
+ /* ROUTINE TO SPLIT A LARGE MESSAGE ON NOTLINES THAT FIT ON SCREEN */
+  DSEMSG='THIS NOTE APPEARS AFTER THE LAST LINE'
+  "ISREDIT LINE_AFTER ".ZLAST" = NOTELINE '"DSEMSG"'"
+ IF NOTESQRY \= 'ON' THEN DO
+  "ISREDIT NOTES = '"NOTESQRY"'"
+  END
+  EXIT
+DORESET:
+ "ISREDIT RESET"
+  EXIT
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+ /* THE REST OF THIS IS JUST JUNK, SO YOU CAN TEST THIS MAC HERE */
+###END EXPLNOTE
+$$$BEG TSTLBL
+/* REXX */
+ADDRESS ISPEXEC
+TRACE ?I
+"ISPEXEC CONTROL ERRORS RETURN"
+"ISREDIT MACRO PROCESS"
+X = 'CURSOR'
+"ISREDIT SCAN OFF"
+SAY RC
+"ISREDIT FIND &&X FIRST"
+SAY RC
+"ISREDIT (MR,MC) = CURSOR"
+SAY MR MC
+"ISREDIT FIND &X FIRST"
+SAY RC
+"ISREDIT (MR,MC) = CURSOR"
+SAY MR MC
+"ISREDIT SCAN ON"
+"ISREDIT FIND &&X FIRST"
+SAY RC
+"ISREDIT (MR,MC) = CURSOR"
+SAY MR MC
+"ISREDIT FIND &X FIRST"
+SAY RC
+"ISREDIT (MR,MC) = CURSOR"
+SAY MR MC
+/* "ISREDIT LABEL .ZFIRST = .TOP"
+"ISREDIT LABEL .ZCSR = .H"
+"ISREDIT LABEL .ZLAST = .BOT" */
+/* // $ */
+"ISREDIT (MYFL) = LINENUM .ZFIRST"
+/* "ISREDIT CURSOR = 0,0" */
+/* EXIT 1  WILL PLACE THE CURSOR ON THE COMMAND LINE */
+ EXIT 1
+SAY MYFL
+"ISREDIT FIND '// $' FIRST"
+IF RC \= 0 THEN EXIT
+"ISREDIT (MYCL,NEST) = LABEL .ZCSR"
+SAY MYCL
+SAY MYFL  MYCL
+"ISREDIT EXCLUDE P'=' .ZFIRST .ZCSR ALL"
+"ISREDIT (MYLL) = LINENUM .ZLAST"
+SAY MYLL
+"ISREDIT (MYV1,MYV2) = LABEL .TOP"
+"ISREDIT (MYB1,MYB2) = LABEL .BOT"
+A = MYV1
+B = MYV2
+C = MYB1
+C = MYB2
+E = MYFL
+F = MYLL
+ "ISREDIT EXCLUDE .H .BOT ALL"
+EXIT
+"ISREDIT (ROW,COL) = CURSOR"
+"ISREDIT LABEL "ROW" = .CURL"
+"ISREDIT LABEL .ZLAST = .BOT"
+ "ISREDIT EXCLUDE .ZFIRST .BOT ALL"
+ "ISREDIT (OURMBR) = MEMBER"
+ "ISREDIT COPY "OURMBR" AFTER .BOT"
+ "ISREDIT CURSOR = .BOT"
+"ISREDIT (ROW,COL) = CURSOR"
+ ROW = ROW+3
+ "ISREDIT LABEL "ROW" = .NLEOX"
+ "ISREDIT LABEL .ZLAST = .EOX"
+ "ISREDIT EXCLUDE .NLEOX .EOX ALL"
+###END TSTLBL
+$$$BEG ZASTE
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA ZASTE    - PASTE LAST CUT  SELECTED LINES TO TARGET LINE  */
+/* CEMHELP ZASTE    -  ISPF EDIT MACRO BASED, 'PASTE SAVED', USED TO */
+/* CEMHELP          - PASTE A CUT PREVIOUS CUT SELECTION, WHICH HAD  */
+/* CEMHELP          - OCCURRED THIS SESSION. USE 'B' OR 'A' AS THE   */
+/* CEMHELP          - LINE CMD TO MARK THE TARGET. CAN NOT BE THE    */
+/* CEMHELP          - 'TOP OF DATASET' OR 'BOTTOM OF DATASET' LINE.  */
+/* CEMHELP          - OMIT 'B' OR 'A' IF NEW MEMBER OR DATASET (I.E. */
+/* CEMHELP          - NO LINES IN THE MEMBER OR DATASET)             */
+/* CEMHELP        -  IF YOU SAVED THE CUT POOL TO A ISPF VARIABLE    */
+/* CEMHELP        -  NAMED AS A PARM TO CUT/CUTA, THEN YOU CAN       */
+/* CEMHELP        -  SPECIFY THAT VAR AS A PARM TO PASTE AND IT WILL */
+/* CEMHELP        -  INSERT FROM THE APPROPIATE ISPF POOL.           */
+/* CEMHELP          - NOTE DIFFERENCES IN ZUT/ZASTE                  */
+/* CEMHELP          -                    ZUTA/ZASTE                  */
+/* CEMHELP          -                    CUTL/PASTEL                 */
+/* CEMHELP          -                    CUTX/PASTEX                 */
+/* CEMHELP END                                                       */
+ ADDRESS ISPEXEC
+ ARG SVVAR
+ "ISPEXEC CONTROL ERRORS RETURN"
+ IF SVVAR ^= '' THEN SIGNAL ARNDNP
+ "ISREDIT MACRO NOPROCESS (SVVAR)"
+ARNDNP:
+ /* TRACE I */
+ "ISREDIT PROCESS RANGE A,B"
+ XC = RC
+ IF XC = 4 & SVVAR = '' THEN SIGNAL SHOWFRMT
+ IF XC = 20 | XC = 4 THEN DO
+  "ISREDIT LOCATE .ZFIRST"
+  IF RC ^= 8 & SVVAR = '' THEN SIGNAL SHOWFRMT
+  DST = 'LINE_AFTER'
+  CNDST = 0
+  END
+  ELSE IF XC ^= 0 THEN SIGNAL SHOWFRMT
+ TGTPOOL='PROFILE'
+ IF SVVAR ^= '' THEN DO
+  UPPER SVVAR
+  SVPFX=SVVAR
+  END
+  ELSE DO
+  SVPFX='MYCN'
+  END
+ SVT=SVPFX||'TOT'
+ "ISPEXEC VGET ("SVT") "TGTPOOL
+ IF RC ^= 0 THEN SIGNAL NOPOOL
+ INTERPRET "L="SVT
+ IF XC = 20 | XC = 4 THEN SIGNAL DESTDFLT
+ "ISREDIT (DST) = RANGE_CMD"
+ IF DST = 'B' THEN DO
+   DST = 'LINE_BEFORE'
+   END
+  ELSE DO
+   DST = 'LINE_AFTER'
+   END
+ "ISREDIT (CNDST) = LINENUM .ZFRANGE"
+DESTDFLT:
+  AMP = '&'
+  SCNVAL = 'OFF'
+  'ISREDIT (SCNVAL) = SCAN'
+  'ISREDIT SCAN OFF'
+  ERRIND = 0
+  STE=TIME('E')
+  GDVAL = ''
+ DO I = 1 TO L
+  GDVAL=GDVAL||' '||SVPFX||I
+  END
+ GDVAL = STRIP(GDVAL,'B')
+ "ISPEXEC VGET ("GDVAL") "TGTPOOL
+ IF RC ^= 0 THEN SIGNAL POOLERR
+ DO I = L TO 1 BY -1
+  DVAL=SVPFX||I
+  /* "ISPEXEC VGET ("VALUE('DVAL')") "TGTPOOL */
+  P1=VALUE(DVAL)
+  A = LENGTH(P1)
+  B = POS(AMP,P1)
+  DO WHILE B > 0
+   P1 = SUBSTR(P1,1,B)||SUBSTR(P1,B)
+   B = POS(AMP,P1,B+2)
+   END
+  'ISREDIT 'DST CNDST' = DATALINE "'P1'"'
+  IF RC < 5 THEN ITERATE
+  "ISREDIT "DST CNDST" = DATALINE '"P1"'"
+  IF RC > 4 THEN ERRIND = 1
+  END
+ 'ISREDIT SCAN 'SCNVAL
+ IF ERRIND ^= 0 THEN SIGNAL INVDATA
+ ZEDSMSG = L' LINES'
+ ZEDLMSG = L' LINES PASTED TO TARGET FROM 'SVPFX
+ SIGNAL WRITIT
+NOTSEQ:
+  ZEDSMSG = "DSORG INVALID"
+  ZEDLMSG = "CUT MACRO REQUIRES PO DATASET SOURCE"
+ SIGNAL WRITIT
+INVDATA:
+  ZEDSMSG = "OMIT INVAL X"
+  ZEDLMSG = "OMITTED INVALID DATA. TRY CUTX OR CUTL"
+ 'ISREDIT SCAN 'SCNVAL
+ SIGNAL WRITIT
+POOLERR:
+  ZEDSMSG = "POOL ERROR"
+  ZEDLMSG = "POOL INDICATES "I" VARIABLES. COULD NOT READ "SVPFX
+ SIGNAL WRITIT
+NOPOOL:
+  ZEDSMSG = "NO CUT DATA"
+  ZEDLMSG = "NO DATA PREVIOUSLY CUT. EXEC ABORT."
+ SIGNAL WRITIT
+SHOWFRMT:
+  ZEDSMSG = "TARGET OMITTED"
+  ZEDLMSG = "PASTE MACRO REQUIRES B OR A LINECMD AS TARGET"
+ SIGNAL WRITIT
+NOTCUT:
+  ZEDSMSG = "REQUIRES CUT SOURCE"
+  ZEDLMSG = "PASTE MACRO REQUIRES SOURCE FILE FROM CUT MACRO"
+ WRITIT:
+ "ISPEXEC SETMSG MSG(ISRZ001)"
+###END ZASTE
+$$$BEG CUTN
+/* REXX */
+ ADDRESS ISPEXEC
+ "ISREDIT MACRO NOPROCESS (SVVAR)"
+ "ISPEXEC CONTROL ERRORS RETURN"
+ XC = 8
+ "ISPEXEC VGET (MYCUTCMD) PROFILE"
+ IF RC > 0 THEN SIGNAL EXITRC16
+ IF MYCUTCMD = 'MYCOPMAC' THEN DO
+  "ISPEXEC VGET (MYCOPLIM) ASIS"
+  IF RC > 0 THEN DO
+    MYCOPLIM = 99
+   "ISPEXEC VPUT (MYCOPLIM) ASIS"
+   END
+  "ISREDIT (FIRST) = LINENUM .ZFIRST"
+  "ISREDIT (LAST) = LINENUM .ZLAST"
+  SVPFX = 'MYCP'
+  INTERPRET SVPFX'TOT = 0'
+  TGTPOOL = 'ASIS'
+  M = 1
+  SIGNAL COPMAC
+  END
+ TGTPOOL='PROFILE'
+ IF SVVAR = '' THEN DO
+  SVPFX='MYCN'
+  END
+  ELSE DO
+  UPPER SVVAR
+  IF DATATYPE(SUBSTR(SVVAR,1,1)) ^= 'CHAR' THEN SIGNAL SHOWFRMT
+  SVVARL=LENGTH(SVVAR)
+  IF SVVARL < 1 | SVVARL > 5 THEN SIGNAL SHOWFRMT
+  SVPFX=SVVAR
+  "ISPEXEC VGET (CUTVARS) ASIS"
+  IF RC ^= 0 THEN CUTVARS=''
+  IF WORDPOS(SVPFX,CUTVARS) = 0 THEN DO
+    CUTVARS=CUTVARS||SVPFX||' '
+   "ISPEXEC VPUT (CUTVARS) ASIS"
+   END
+  END
+ "ISREDIT PROCESS RANGE C CC"
+ IF RC ^= 0 THEN SIGNAL SHOWFRMT
+ "ISREDIT (FIRST) = LINENUM .ZFRANGE"
+ "ISREDIT (LAST)  = LINENUM .ZLRANGE"
+ I=FIRST
+ J=LAST
+ L=(LAST-FIRST)+1
+ "ISPEXEC VGET ("SVPFX"TOT) "TGTPOOL
+ IF RC > 0 THEN DO
+  INTERPRET SVPFX'TOT = 0'
+  "ISPEXEC VPUT ("SVPFX"TOT) "TGTPOOL
+  END
+ IF MYCUTCMD='ZUT' THEN DO
+  M=1
+  INTERPRET SVPFX||"TOT = 0"
+  END
+  ELSE DO
+  IF MYCUTCMD ^= 'ZUTA' THEN SIGNAL EXITRC16
+  INTERPRET "M="SVPFX"TOT+1"
+  END
+ INTERPRET SVPFX"TOT=L+"SVPFX"TOT"
+ INTERPRET 'IF 'SVPFX'TOT > 99 THEN SIGNAL EXITRC8'
+COPMAC:
+ GDVAL=''
+ DO K=FIRST TO LAST
+  DVAL=SVPFX||M
+  "ISREDIT ("VALUE(DVAL)") = LINE "K
+  GDVAL = GDVAL||VALUE('DVAL')||' '
+  M=M+1
+  END
+ GDVAL=STRIP(GDVAL,'B')
+ "ISPEXEC VPUT ("GDVAL") "TGTPOOL
+ IF RC > 0 THEN SIGNAL POOLERR
+ IF SVPFX = 'MYCP' THEN INTERPRET SVPFX'TOT = LAST'
+ "ISPEXEC VPUT ("SVPFX"TOT) "TGTPOOL
+ IF RC > 0 THEN SIGNAL POOLERR
+ I=(LAST-FIRST)+1
+ ZEDSMSG = I" LINES "SVPFX
+ ZEDLMSG = I" LINES VPUT TO "SVPFX" VARIABLE"
+ XC = 0
+ SIGNAL WRITIT
+EXITRC8:
+ ZEDSMSG = "CUT LN > 99"
+ ZEDLMSG = "MAXIMUM 99 ENTRIES CAN BE CUT/CUTA. USE CUTL OR CUT"
+ SIGNAL WRITIT
+EXITRC12:
+ ZEDSMSG = "CUTA VAR ERROR"
+ ZEDLMSG = "CUTA VARIABLE PUT ERROR. DATA IS NOT CUTA AT" M
+ SIGNAL WRITIT
+EXITRC16:
+ ZEDSMSG = "INVCATION ERROR"
+ ZEDLMSG = "EXEC INVOKED ILLEGALLY"
+ SIGNAL WRITIT
+POOLERR:
+ ZEDSMSG = "ISP POOL VAR ERROR"
+ ZEDLMSG = "ERROR VPUT "VALUE('DVAL')" VARIABLE"
+ SIGNAL WRITIT
+SHOWFRMT:
+ ZEDSMSG = "RANGE OMITTED"
+ ZEDLMSG = "CUTA MACRO REQUIRES C OR CC LINECMDS"
+ WRITIT:
+ "ISPEXEC SETMSG MSG(ISRZ000)"
+ RETURN XC
+###END CUTN
+$$$BEG TMPMAC1
+/* REXX */
+/* TRACE ?I */
+ XPPLID = 'CGE7'
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO"
+ 'ISREDIT (OURDSN) = DATASET'
+ XURDSN=TRANSLATE(OURDSN,' ','.')
+ APPLID = WORD(XURDSN,5)
+ ZEDSMSG = 'CHG:'APPLID
+ ZEDLMSG = 'CHG:FROM:'XPPLID':TO:'APPLID
+ "ISREDIT CHANGE '"XPPLID"' '"APPLID"' ALL"
+ IF RC = 0 THEN SIGNAL DONIT
+ ZEDSMSG = 'NOCHG:'XPPLID':NF'
+ ZEDLMSG = 'NO CHG:FROM:'XPPLID':NOT FOUND'
+CANIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+ "ISREDIT CANCEL"
+DONIT:
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+ RETURN
+###END TMPMAC1
+$$$BEG #EXIT
+ /* REXX */
+ /* CEMHELP BEGIN                                                     */
+ /* CEMHELA #EXIT    - ISPF EDIT MACRO BASED, EXEC THE CURRENT MEMBER */
+ /* CEMHELP #EXIT    - ISPF EDIT MACRO BASED, EXEC THE CURRENT MEMBER */
+ /* CEMHELP          - AS A INVOKED EXEC/CLIST'                       */
+ /* CEMHELP          - USE ? AS PARM TO SEE PARAMETER PASSING OPTIONS */
+ /* CEMHELP END                                                       */
+  ADDRESS ISPEXEC
+  "ISPEXEC CONTROL ERRORS RETURN"
+  SIGNAL ON ERROR NAME EXITRC8
+  SIGNAL ON HALT NAME EXITRC4
+  "ISREDIT MACRO NOPROCESS (PASSARG)"
+/*  TRACE ?I */
+  PA4=''
+  PASSA=''
+  PUSHA=''
+  PULLA=''
+  VPUTA=''
+  VGETA=''
+  VPOL=''
+  EDITA=''
+  BROWA=''
+  TMPARGS = ''
+  ARGWDS='PUSH PULL VGET VPUT EDIT BROW PASSA'
+  HARGWDS=''
+  PACT=0
+  IF PASSARG = '' THEN SIGNAL NOPARM
+  IF PASSARG = '?' THEN SIGNAL SHOWFMT
+  /* TRACE ?I */
+  DO WHILE(PASSARG ^= '')
+   PARSE VAR PASSARG HCMD '<' TMP '>' PASSARG
+   HCMD=STRIP(HCMD,'B')
+   HCMD = TRANSLATE(HCMD,' ',',')
+   NWD=WORDS(HCMD)
+   IF NWD > 1 THEN CMD=WORD(HCMD,NWD) /* LAST CMD??? */
+    ELSE DO
+    IF NWD < 1 THEN DO
+     CMD = 'PASSA'
+     HCMD = CMD
+     NWD=1
+     END
+     ELSE CMD = HCMD
+    END
+   UPPER CMD
+ /*TMPARGS=TMPARGS||DELWORD(HCMD,NWD)          */
+ /*IF WORDPOS(CMD,ARGWDS) = 0 THEN CMD='PASSA' */
+   IF WORDPOS(CMD,ARGWDS) = 0 THEN DO
+    TMPARGS=TMPARGS||' '||HCMD
+    CMD = 'PASSA'
+    END
+    ELSE TMPARGS=TMPARGS||DELWORD(HCMD,NWD)
+   WP=WORDPOS(CMD,HARGWDS)
+   IF WP = 0 THEN DO
+    HARGWDS=HARGWDS||' '||CMD
+    PACT = WORDS(HARGWDS)
+    PC.PACT=CMD
+    PA.PACT=''
+    END
+   LTMP=LENGTH(TMP)
+   IF LTMP > 0 THEN DO
+    IF SUBSTR(TMP,1,1) = '"' & SUBSTR(TMP,LTMP,1) = '"' THEN DO
+     IF LTMP > 2 THEN TMP = SUBSTR(TMP,2,LTMP-2)
+     END
+     ELSE DO
+     UPPER TMP
+     END
+    END
+   PA.PACT=PA.PACT||' '||TMP||' '||TMPARGS
+   END
+  WP=WORDPOS('PASSA',HARGWDS)
+  IF WP > 0 THEN DO
+   PASSA = STRIP(PA.WP,'B')
+   IF SUBSTR(PASSA,1,1) = '"' THEN PASSA=SUBSTR(PASSA,2)
+   IF SUBSTR(PASSA,1,1) = "'" THEN PASSA=SUBSTR(PASSA,2)
+   PL=LENGTH(PASSA)
+   IF SUBSTR(PASSA,PL,1) = '"' THEN PASSA=SUBSTR(PASSA,1,PL-1)
+   IF SUBSTR(PASSA,PL,1) = "'" THEN PASSA=SUBSTR(PASSA,1,PL-1)
+   PASSA="'"||PASSA||"'"
+   END
+ /* IF POS('(',PASSA) = 0 THEN PASSA="'"||PASSA||"'" */
+  IF VPUTA^='' THEN DO
+   TMP=VPUTA
+   PARSE VAR TMP TMPS '(' TMPV ')' VPOL .
+   IF WORDPOS(VPOL,'ASIS SHARED PROFILE') = 0 THEN VPOL  = 'ASIS'
+   INTERPRET TMPS '= TMPV'
+   "ISPEXEC VPUT ("TMPS") "VPOL
+   END
+  PCT = WORDPOS('PUSH',HARGWDS)
+/*   TRACE ?I */
+  DO WHILE (PCT \= 0)
+   PUSHA=PA.PCT
+   PUSH  PUSHA
+   PCT=WORDPOS('PUSH',HARGWDS,PCT+1)
+   END
+ NOPARM:
+  "ISREDIT (OURDSN) = DATASET"
+  X=LISTDSI("'"OURDSN"'")
+  IF SYSDSORG = 'PO' THEN DO
+   "ISREDIT (OURMBR) = MEMBER"
+   IF OURMBR = '#EXIT' | OURMBR = 'XEQIT' THEN SIGNAL NOTDONE
+   XITDSN = OURDSN"("OURMBR")"
+   END
+   ELSE IF SYSDSORG = 'PS' THEN DO
+   XITDSN = OURDSN
+   END
+   ELSE SIGNAL EXITRC8
+  CALL XEQIT XITDSN PASSA
+  XC = RC
+  IF VGETA ^= '' THEN DO
+   TZP=VGETA
+   PARSE VAR VGETA TMPS '(' TMPV ')' VPOLA .
+   IF WORDPOS(VPOLA,'ASIS SHARED PROFILE') = 0 THEN DO
+    IF VPOL ^= '' THEN VPOLA=VPOL
+     ELSE VPOLA = 'ASIS'
+    END
+    "ISREXEC CONTROL ERRORS RETURN"
+   "ISPEXEC VGET ("TMPS") "VPOL
+   IF RC ^= 0 THEN SAY TZP ' WAS NOT VPUT IN ROUTINE 'XITDSN
+    ELSE SAY TZP
+   INTERPRET 'SAY 'VGETA
+   END
+  IF WORDPOS('PULL',HARGWDS) > 0 THEN DO
+   TZP=PULLA
+   PARSE VAR PULLA PULLA '(' TMP ')' .
+   PULL TMP
+   FFX = 'FF'X
+   MSGBOXTX=FFX||TZP||FFX||TMP
+   CALL MSGBOX MSGBOXTX
+   EXIT
+   END
+  IF VGETA^='' | VPUTA^='' THEN DO
+   CALL ISRPTVAR
+   EXIT
+   END
+  IF EDITA^='' THEN DO
+   EDSN=WORD(EDITA,1)
+   SAY EDITA
+   "ISPEXEC EDIT DATASET('"EDSN"')"
+   END
+  IF BROWA^='' THEN DO
+   SAY BROWA
+   EDSN=WORD(BROWA,1)
+   "ISPEXEC BROWSE DATASET('"EDSN"')"
+   END
+ JSTRET:
+  ZEDSMSG = 'RET CODE 'XC
+  ZEDLMSG = 'EXEC 'OURMBR' RETURNED 'XC
+  SIGNAL WRITIT
+ SAVEND:
+  SIGNAL ON HALT NAME EXITRC8
+  ZEDSMSG = 'ATTN ABORT'
+  ZEDLMSG = 'ATTN RTN ENTERED. EXEC ABORTED.'
+  SIGNAL WRITIT
+ EXITRC8:
+  ZEDSMSG = 'DATASET NOT PS OR PO'
+  ZEDLMSG = 'INVALID SOURCE FOR CLIST EXECUTION'
+  SIGNAL WRITIT
+ EXITRC4:
+  ZEDSMSG = 'HALT (ATTN) SELECTED'
+  ZEDLMSG = 'HALT (ATTN) SELECTED FOR EXEC'
+  SIGNAL WRITIT
+ PVTLOOP:
+  ZEDSMSG = '#EXIT INVALID'
+  ZEDLMSG = '#EXIT IS INVALID FOR RECURSIVE EXECUTION'
+  SIGNAL WRITIT
+ NOTDONE:
+  ZEDSMSG = 'INVALID PARM'
+  ZEDLMSG = 'VALID FORM PARMS ARE CPTLMS'
+ WRITIT:
+  'ISPEXEC SETMSG MSG(ISRZ001)'
+  EXIT
+ SHOWFMT:
+  FFX = 'FF'X
+  MSGBOXTX = FFX||'#EXIT OR #EXIT KW<KWPARM>'||FFX||,
+    'OR #EXIT KW<KWPARM>KW<KWPARM>'||FFX||,
+    'VALID KW:'||ARGWDS||FFX||,
+    'BRACKETS ARE REQUIRED. IF KW IS NOT ON LIST'||FFX||,
+    'THEN KW IS IGNORED AND KWPARM SENT AS AND PASSA.'
+   CALL MSGBOX MSGBOXTX
+   EXIT
+###END #EXIT
+$$$BEG ADDLIT
+ /* REXX */
+ /* CEMHELP BEGIN                                                   */
+ /* CEMHELA ADDLIT   - ADD | APPEND A LANG SPECIFIC COMMENT         */
+ /* CEMHELP          - ISREDIT - ADDS OR APPENDS A LANGUAGE SPECIFIC*/
+ /* CEMHELP          - COMMENT LINE(S).                             */
+ /* CEMHELP          - TAKES 0,1 or 2 ARG: IF PROVIDED, USES 1st ARG*/
+ /* CEMHELP          - TO IDENTIFY THE DATA MEMBER TYPE             */
+ /* CEMHELP          - REX ASM COB JCL CPP                          */
+ /* CEMHELP          - uses 2nd arg to identify number of lines     */
+ /* CEMHELP          -  to insert                                   */
+ /* CEMHELP          - A DATA CAPTURE PANEL WHICH WILL BE ADDED     */
+ /* CEMHELP          - TO THE SOURCE AS INDICATED.                  */
+ /* CEMHELP          - IF TARGET IS NOT SPECIFIED, THEN CURRENT LINE*/
+ /* CEMHELP          - IS TARGET.                                   */
+ /* CEMHELP          - VALID TARGET LINE CMD OPTIONS ARE            */
+ /* CEMHELP          - B OR A (AS INSERTED COMMENT LINES)           */
+ /* CEMHELP          - N SIMILAR TO A                               */
+ /* CEMHELP          - S AS A SUFFIX TO THE CURRENT LINE            */
+ /* CEMHELP          -   (COBOL DOES NOT SUPPORT SUFFIX)            */
+ /* CEMHELP          -                                              */
+ /* CEMHELP END                                                     */
+   ADDRESS ISPEXEC
+   "ISPEXEC CONTROL ERRORS RETURN"
+   'ISREDIT MACRO NOPROCESS (LVAR,NVAR)'
+   H_LVAR = LVAR
+   H_NVAR=NVAR
+   IF LVAR ^= '' THEN DO
+    IF DATATYPE(LVAR) = 'NUM' THEN DO
+     NVAR=LVAR
+     END
+    END
+   IF H_NVAR ^= '' THEN DO
+    IF DATATYPE(H_NVAR) = 'CHAR' THEN DO
+     LVAR=H_NVAR
+     END
+    END
+   XC = RC
+   NL=0
+   "ISREDIT (DL DR) = DISPLAY_COLS"
+   DR=DR-1
+   LSTSP = DR
+   XROW=0
+   XCOL=0
+   LROW=0
+   PROW=0
+   TGTCMD=''
+   "ISREDIT (XROW,XCOL) = CURSOR"
+   'ISREDIT PROCESS DEST RANGE N S'
+   IF RC > 12 THEN SIGNAL UNKNOWN_RNG
+   IF RC = 12 THEN SIGNAL CURPOS
+    'ISREDIT (TGTCMD) = RANGE_CMD'
+    'ISREDIT (CROW) = LINENUM .ZFRANGE'
+    'ISREDIT (LROW)  = LINENUM .ZLRANGE'
+    'ISREDIT (PROW)  = LINENUM .ZDEST'
+ /*   TRACE ?I */
+   AMCD =TGTCMD
+   AMCD =CROW
+   AMCD =LROW
+   AMCD =PROW
+   IF TGTCMD = '' | TGTCMD = 'N' THEN
+    TGTCMD = 'A'
+    CROW = PROW
+    XROW = PROW
+    LROW = PROW
+    SIGNAL ARND_CURPOS
+    END
+   XROW = CROW
+   SIGNAL ARND_CURPOS
+  CURPOS:
+   IF XROW = 0 THEN DO
+    SIGNAL NOLINE
+    END
+  ARND_CURPOS:
+   FXADJ=0
+   DTYP = ''
+   IF LVAR ^= '' THEN DO
+    UPPER LVAR
+    SELECT
+     WHEN LVAR= 'JCL' THEN DTYP=LVAR
+     WHEN LVAR= 'ASM' THEN DTYP=LVAR
+     WHEN LVAR= 'COB' THEN DTYP=LVAR
+     WHEN LVAR= 'CPP' THEN DTYP=LVAR
+     WHEN LVAR= 'REX' THEN DTYP=LVAR
+     WHEN LVAR= 'CPP' THEN DTYP=LVAR
+     OTHERWISE NOP
+     END
+    END
+   IF DTYP = '' THEN DO
+    "ISREDIT (FLNE) = LINE 1"
+    SELECT
+     WHEN SUBSTR(FLNE,1,1) = '*' THEN DTYP='ASM'
+     WHEN SUBSTR(FLNE,1,2) = '//' THEN DTYP='JCL'
+     WHEN WORDPOS('REXX',FLNE) ^= 0 THEN DTYP='REX'
+     WHEN WORDPOS('IDENTIFICATION DIVISION.',FLNE) ^= 0 THEN DTYP='COB'
+     WHEN WORDPOS('CBL',FLNE) ^= 0 THEN DTYP='COB'
+     WHEN WORDPOS('IMPORT',FLNE) ^= 0 THEN DTYP='CPP'
+     OTHERWISE SIGNAL UNKNOWN_DTYP
+     END
+    END
+   SFXSTR=''
+   SELECT
+    WHEN DTYP= 'JCL' THEN DO
+     FXADJ=4
+     PFXSTR='//* '||PFXSTR
+     END
+    WHEN DTYP= 'ASM' THEN DO
+     FXADJ=0
+     PFXSTR='*'||PFXSTR
+     END
+    WHEN DTYP= 'COB' THEN DO
+     FXADJ=2
+     PFXSTR='* '
+     XCOL = 0
+     END
+    WHEN DTYP= 'REX' THEN DO
+     FXADJ=6
+     PFXSTR='/* '
+     SFXSTR=' */'
+     END
+    WHEN DTYP= 'CPP' THEN DO
+     PFXSTR='// '
+     FXADJ=3
+     END
+    OTHERWISE SIGNAL UNKNOWN_DTYP
+    END
+   IF XCOL = 0 THEN DO
+    SPEC='NEW_LINE'
+    END
+    ELSE DO
+    SPEC='CUR_SPEC'
+    END
+ /*
+   IF (LSTSP+FXADJ+10) > DR THEN SIGNAL BADCOL
+   IF LSTSP > ACOL THEN ACOL = LSTSP
+   PFXSTR=SUBSTR(PFXSTR,1,ACOL-1)
+   ADJACOL=ACOL+FXADJ
+   IF ADJACOL > DR THEN SIGNAL BADCOL   */
+  DOIT:
+   DSEMSG = 'Enter COMMENT Lines'
+   'ISPEXEC VPUT (DSEMSG) ASIS'
+   CALL REXXSRC 'PULL'
+   MYVAR#=QUEUED()
+   IF MYVAR# = 0 THEN do
+    IF NVAR < 1  THEN SIGNAL NONEQUE
+    MYV.1 = ' '
+    MYVAR# = 1
+    SIGNAL ARND_MYV
+    END
+   MYVAR=''
+   MYLMAX = 0
+   DO I = 1 TO MYVAR#
+    PULL TMPVAR
+    MYV.I = STRIP(TMPVAR,'T')
+    MYL.I = LENGTH(MYV.I)
+    IF MYL.I > MYLMAX THEN MYLMAX = MYL.I
+    MYVAR = MYVAR||' '||MYV.I
+    END
+ ARND_MYV:
+   SP=COPIES(' ',DR)
+   PFXLNG = DR - LENGTH(SFXSTR)
+ /* XCOL SAYS CURSOR WAS AT A COL POS  IN A LINE     *\
+ |* OR TGTCMD 'S' SAYS USE A COL POS                 *|
+ |* USE A COL POSITIONED AT THE END OF A LINE, AS    *|
+ |*  LONG AS IT CAN FIT THE LNG OF FIRST CMT INE     *|
+ |*  OTHERWISE, WE SIMPLE INSERT COMMENTS AS IF      *|
+ \*  TGTCMD WAS 'A'                                  */
+ /* TRACE ?I */
+   I = 0
+   IF XCOL > 0 | TGTCMD = 'S' THEN DO
+    "ISREDIT (MYLNE) = LINE "XROW
+    IF RC ^= 0 THEN SIGNAL NOLINE
+    MYLNE=STRIP(MYLNE,'T')||' '
+    LP=LASTPOS(' ',MYLNE)
+    LSTSP = (DR - LP) - FXADJ
+    IF LSTSP >= MYLMAX THEN DO
+     MYLNE = SUBSTR(MYLNE||' '||PFXSTR||MYV.1||SP,1,PFXLNG)||SFXSTR
+     "ISREDIT LINE "XROW" = '"MYLNE"'"
+     IF RC > 5 THEN 'ISREDIT LINE 'XROW' = "'MYLNE'"'
+     I = 1
+     END  /* TEST1 LINE 1 IS HERE                                    */
+/* TEST2                                                             */
+/* T3                                                                */
+    END
+/* TRACE ?I */
+   IF NVAR > 99 THEN NVAR = 99
+   IF MYVAR# > NVAR THEN NVAR = MYVAR#
+   J = NVAR
+   DO WHILE J > I
+    IF J > MYVAR# THEN
+    TMP = SUBSTR(PFXSTR||SP,1,PFXLNG)||SFXSTR
+    ELSE
+    TMP = SUBSTR(PFXSTR||MYV.J||SP,1,PFXLNG)||SFXSTR
+    "ISREDIT LINE_AFTER "XROW" = '"TMP"'"
+    J = J - 1
+    END
+  DONEPULL:
+   ZEDSMSG = MYVAR#' COMMENTS INSERTED'
+   ZEDLMSG = MYMAR#' COMMENT LINES INSERTED AT 'SPEC' POSITION.'
+   SIGNAL WRITIT
+  UNKNOWN_RNG:
+   ZEDSMSG = '?TARGET'
+   ZEDLMSG = 'UNKNOWN TARGET LINE COMMANG. ABORT.'
+   SIGNAL WRITIT
+  UNKNOWN_DTYP:
+   ZEDSMSG = '?DATATYP'
+   ZEDLMSG = 'UNKNOWN DATATYPE. CANNOT CREATE VALID COMMENTS'
+   SIGNAL WRITIT
+  NONEQUE:
+   ZEDSMSG = 'NO QUEUE'
+   ZEDLMSG = 'ZERO LINES WERE QUEUED FOR INSERT'
+   SIGNAL WRITIT
+  NOTBLANK:
+   ZEDSMSG = 'TARGET NOT BLANK'
+   ZEDLMSG = 'TARGET AREA FOR COMMENT IS NOT BLANK.'
+   SIGNAL WRITIT
+  BADCOL:
+   ZEDSMSG = 'COLUME INVALID'
+   ZEDLMSG = 'START COMMENT COLUME IS INVALID.'
+  NOLINE:
+   ZEDSMSG = 'LINE FAILURE'
+   ZEDLMSG = 'COULD NOT RETRIEVE LINE AT 'XROW
+  WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+###END ADDLIT
+$$$BEG EXZDEST
+ /* REXX */
+ /* CEMHELP BEGIN                                                   */
+ /* CEMHELA          -                                              */
+ /* CEMHELP          - TSO BASE, RESTRICTED                         */
+ /* CEMHELP          -                                              */
+ /* CEMHELP END                                                     */
+   ADDRESS ISPEXEC
+   "ISPEXEC CONTROL ERRORS RETURN"
+   'ISREDIT MACRO NOPROCESS (LVAR)'
+   SROW=0
+   SCOL=0
+   LROW=0
+   TRACE ?I
+   MMYCMD=''
+   'ISREDIT PROCESS DEST RANGE N S'
+ /*IF RC \= 0 THEN SIGNAL TRYDEST */
+    'ISREDIT (MYCMD) = RANGE_CMD'
+    'ISREDIT (FROW) = LINENUM .ZFRANGE'
+    'ISREDIT (LROW)  = LINENUM .ZLRANGE'
+    'ISREDIT (PROW)  = LINENUM .ZDEST'
+    AMCD =MYCMD
+    AMCD =FROW
+    AMCD =LROW
+    AMCD =PROW
+   SIGNAL CURPOS
+  TRYDEST:
+   'ISREDIT PROCESS DEST'
+   IF RC ^= 0 THEN SIGNAL CURPOS
+    'ISREDIT (MYCMD) = RANGE_CMD'
+    AMCD =MYCMD
+/* 'ISREDIT (SROW) = LINENUM .ZFRANGE'
+   'ISREDIT (LROW)  = LINENUM .ZLRANGE' */
+   'ISREDIT (LROW)  = LINENUM .ZDEST'
+   XX=LROW
+   SCOL=1
+  CURPOS:
+   EXIT
+###END EXZDEST
+$$$BEG FWD
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA FWD      - FIND WORD UNDER THE CURSOR                     */
+/* CEMHELP FWD      - ISPF EDIT MACRO BASED, FIND THE WORD UNDER THE */
+/* CEMHELP          - CURSOR, DELIMITED BY SPACES, OR ".,/='(){}[]   */
+/* CEMHELP          - WILL ACCEPT A FIND SCOPE OF ALL, FIRST, LAST   */
+/* CEMHELP          -  NEXT, AND CLEAR AS THE ONLY PARAMETER.        */
+/* CEMHELP          - NOTE: CLEAR DELETES ALL WORDS IN LIST.         */
+/* CEMHELP          - USE RFWD COMMAND TO DISPLAY LIST OF FWD WORDS  */
+/* CEMHELP END                                                       */
+ DLMSTR='".,/=:;(){}[]'
+ DLMSTR=DLMSTR||"'"
+ SPACES=COPIES(' ',LENGTH(DLMSTR))
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO NOPROCESS (SCOPE)"
+ UPPER SCOPE
+ FSCPE=WORDPOS(SCOPE,'FIRST LAST ALL NEXT PREV CLEAR')
+ IF FSCPE = 0 THEN SCOPE = 'NEXT'
+ IF SCOPE = 'CLEAR' THEN DO
+  FWDLIST = ''
+  'ISPEXEC VPUT (FWDLIST) PROFILE'
+   ZEDSMSG = 'CLEAR_FWD'
+   ZEDLMSG = 'CLEARED FWD LIST'
+  SIGNAL WRITIT
+  END
+/* STRIP THE WORD FROM THE LINE BASE ON DEFAULT DELIMITERS OF        */
+/* SPACES, OR ".,/='                                                 */
+/*
+TTED.TSK.P.TCEM.CNTL,DISP=SHR
+             TTED.TSK.P.TCEM.CNTL,DISP=SHR
+//    DD       DSN=TTED.TSK.P.TCEM.CNTL,DISP=SHR
+// DSN=TTED.TSK.P.TCEM.CNTL,DISP=SHR,DSN=ABC,DISP=SHR
+ */
+ XC = 2
+ 'ISREDIT (ROW,COL) = CURSOR'
+ 'ISREDIT (DLNE) = LINE 'ROW
+ DLNE = TRANSLATE(DLNE,SPACES,DLMSTR)
+ LP=POS(' ',SUBSTR(DLNE,COL))
+ IF LP = 0 THEN LP = LENGTH(DLNE)
+  ELSE LP=(LP+COL)-1
+ DLNE=STRIP(SUBSTR(DLNE,1,LP),'T')
+ FP = LASTPOS(' ',DLNE)
+ IF FP = 0 THEN FP = 1
+ DLNE=STRIP(SUBSTR(DLNE,FP),'B')
+ FWDLIST=''
+ "ISPEXEC VGET (FWDLIST) PROFILE"
+ FP=WORDPOS(DLNE,FWDLIST)
+ IF FP \= 0 THEN FWDLIST=DELWORD(FWDLIST,FP,1)
+ FWDLIST = DLNE||' '||FWDLIST
+ WC=WORDS(FWDLIST)
+ IF WC > 30 THEN DO
+  TMPLIST=''
+  DO I = 1 TO 30
+   TMPLIST = WORD(FWDLIST,I)||' '
+   END
+  FWDLIST=TMPLIST
+  END
+"ISPEXEC VPUT (FWDLIST) PROFILE"
+ "ISREDIT FIND '"DLNE"' WORD "SCOPE
+ "ISREDIT (FC) = FIND_COUNTS"
+ IF FC = 0 THEN DO
+  ZEDSMSG = DLNE' NOT FOUND'
+  ZEDLMSG = DLNE 'NOT FOUND IN SCOPE 'SCOPE
+  END
+  ELSE DO
+  IF SCOPE = 'ALL' THEN DO
+   ZEDSMSG = DLNE' FOUND 'FC+0' TIMES'
+   ZEDLMSG = DLNE 'FOUND IN SCOPE 'SCOPE' 'FC+0' TIMES'
+   END
+   ELSE DO
+   ZEDSMSG = DLNE' FOUND'
+   ZEDLMSG = DLNE 'FOUND IN SCOPE 'SCOPE
+   END
+  END
+ SIGNAL WRITIT
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+###END FWD
+$$$BEG JLCTE
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA JLCTE    - LISTC LVL ON A SELECTED DSN AND SAVE TO TEMP   */
+/* CEMHELP JLCTE    - ISPF EDIT MACRO BASED, 'LISTC ENT' SELECTION   */
+/* CEMHELP          - WILL PERFORM A LISTC ENT ON THE DSN WHICH IS   */
+/* CEMHELP          - SELECTED BY USING THE POSITION OF THE CURSOR   */
+/* CEMHELP          - WITHIN A DSN TO DELIMIT THE GENERIC PORTION OF */
+/* CEMHELP          - THE DSN.  THE RESULT WILL BE DISPLAYED.        */
+/* CEMHELP END                                                       */
+  ARG DLNE
+  CALL LCT  'JLCTE' DLNE
+###END JLCTE
+$$$BEG LCTE
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA LDSNE    - LISTC LVL ON A SELECTED DSN AND SAVE TO TEMP   */
+/* CEMHELP LDSNE    - ISPF EDIT MACRO BASED, 'LISTC LVL' SELECTION   */
+/* CEMHELP          - WILL PERFORM A LISTC LVL ON THE DSN WHICH IS   */
+/* CEMHELP          - SELECTED BY USING THE POSITION OF THE CURSOR   */
+/* CEMHELP          - WITHIN A DSN TO DELIMIT THE GENERIC PORTION OF */
+/* CEMHELP          - THE DSN.  THE RESULT WILL INTERPRETED AND A    */
+/* CEMHELP          - TEMP FILE (DSN: SYSUID.SYM3.DATA) IS CREATED   */
+/* CEMHELP          - FOR THE RESULT.  EXEC THEN GOES TO EDIT ON     */
+/* CEMHELP          - THIS TEMP FILE.                                */
+/* CEMHELP END                                                       */
+  ARG DLNE
+  CALL LCT  'LCTE' DLNE
+###END LCTE
+$$$BEG STRIPDS3
+/* REXX */                                                              00010001
+/* CEMHELP          - RESTRICTED                                     */ 00020001
+ ADDRESS ISPEXEC                                                        00030001
+ 'ISPEXEC CONTROL ERRORS RETURN'                                        00040001
+ XC = 12                                                                00050003
+ OURDSN = ''                                                            00060003
+ STPMBR = ''                                                            00070006
+ "ISPEXEC VGET (DLNE DCOL) ASIS"                                        00080002
+ IF RC ^= 0 THEN SIGNAL INVDSN                                          00090001
+ COL = DCOL                                                             00100001
+ DSNP=POS("DSN=",DLNE)                                                  00110020
+ IF DSNP=0 THEN SIGNAL USECOL                                           00120020
+ DSNP=DSNP+4                                                            00130021
+ HP=SUBSTR(DLNE,DSNP,1)                                                 00140020
+ IF HP="'" THEN SIGNAL ADD1                                             00150021
+ IF HP='"' THEN SIGNAL ADD1                                             00160021
+ IF HP='(' THEN DO                                                      00170020
+  HP=')'                                                                00180020
+  SIGNAL ADD1                                                           00190021
+  END                                                                   00191021
+SIGNAL OKDSN                                                            00192021
+ADD1:                                                                   00193021
+ DSNP=DSNP+1                                                            00200021
+OKDSN:                                                                  00210020
+ DO WHILE (DSNP < COL)                                                  00220001
+  DSNPNXT=POS('DSN=',DLNE,DSNP)                                         00230001
+  IF DSNPNXT = 0 THEN COL=DSNP                                          00240001
+   ELSE IF COL >= DSNPNXT THEN DSNP=DSNPNXT+4                           00250001
+    ELSE LEAVE                                                          00260001
+  END                                                                   00270001
+ COL=DSNP                                                               00280001
+USECOL:                                                                 00290001
+ DLNE = SUBSTR(DLNE,COL)                                                00300001
+   DLNE=STRIP(DLNE,'B')||' '                                            00310001
+   SDLNE = DLNE                                                         00320003
+   DLNE=TRANSLATE(DLNE,"::::::",", ()'""")                              00330001
+   LSTPOS=POS(':',DLNE)                                                 00340001
+   DLNE = SUBSTR(DLNE,1,LSTPOS-1)                                       00350001
+ IF DLNE = '' THEN SIGNAL INVDSN                                        00360001
+ DLNG = LENGTH(DLNE)                                                    00370001
+ IF DLNG > 44 THEN SIGNAL INVDSN                                        00380001
+ OURDSN = DLNE                                                          00390001
+ LSTPOS = LSTPOS + 1                                                    00400010
+ IF SUBSTR(SDLNE,LSTPOS,1) = '(' THEN DO                                00410011
+  MPOS = LSTPOS                                                         00420010
+  LSTPOS = POS(")",SDLNE,MPOS)                                          00430006
+  IF LSTPOS = 0 THEN SIGNAL NOMBR                                       00440003
+  LSTPOS = LSTPOS - MPOS                                                00450007
+  IF LSTPOS = 0 THEN SIGNAL NOMBR                                       00460007
+  IF LSTPOS > 8 THEN SIGNAL NOMBR                                       00470007
+  STPMBR = SUBSTR(SDLNE,MPOS,LSTPOS)                                    00480007
+  IF DATATYPE(SUBSTR(STPMBR,1,1)) ^= 'CHAR' THEN STPMBR = ''            00490006
+  END                                                                   00500003
+ CALL MALOC OURDSN                                                      00510012
+ XC = RESULT                                                            00520013
+ IF XC > 16 THEN SIGNAL INVDSN                                          00530017
+ X =SYSDSN("'"OURDSN"'")                                                00540004
+ IF X ^= 'OK' THEN SIGNAL INVDSN                                        00550004
+NOMBR:                                                                  00560003
+ XC = 0                                                                 00570003
+INVDSN:                                                                 00580001
+ "ISPEXEC VPUT (OURDSN STPMBR) ASIS"                                    00590006
+ RETURN XC                                                              00600003
+###END STRIPDS3
+$$$BEG STRIPDSN
+/* REXX */
+/* CEMHELP          - RESTRICTED                                     */
+/* CEMHELP          - SELECTED BY USING:                             */
+/* CEMHELP          - 'S' LINE CMD FOR DSN  STARTING IN POS1 OR      */
+/* CEMHELP          - 'S' LINE CMD FOR DSN FOLLOWING 'DSN=' IN LINE  */
+/* CEMHELP          - DSN INDICATED BY POSITION ANYWHERE WITHIN A    */
+/* CEMHELP          -  LINE WITH A 'DSN=' LITERAL                    */
+/* CEMHELP          - SPECIFICALLY BY CURSOR POSITION ON FIRST CHAR  */
+/* CEMHELP          -  OF A DSN                                      */
+/*
+TTED.TSK.P.TCEM.CNTL,DISP=SHR
+          XX=TTED.TSK.P.TCEM.CNTL,DISP=SHR
+             TTED.TSK.P.TCEM.CNTL,DISP=SHR
+//    DD       DSN=TTED.TSK.P.TCEM.CNTL,DISP=SHR
+// DSN=TTED.TSK.P.TCEM.CNTL,DISP=SHR,DSN=ABC,DISP=SHR
+ */
+ XC = 2
+ ADDRESS ISPEXEC
+ 'ISPEXEC CONTROL ERRORS RETURN'
+ 'ISREDIT MACRO NOPROCESS'
+ ARG LNNO
+ IF LENGTH(LNNO) > 0 THEN DO
+  IF LNNO < 1 THEN SIGNAL INVDSN
+  'ISREDIT (LLN) = LINENUM .ZLAST'
+  IF LNNO > LLN THEN SIGNAL INVDSN
+ 'ISREDIT CURSOR = 'LNNO' 1'
+  SIGNAL USECUR
+  END
+ 'ISREDIT PROCESS RANGE S'
+ IF RC ^= 0 THEN SIGNAL USECUR
+ 'ISREDIT (FIRST) = LINENUM .ZFRANGE'
+ 'ISREDIT (LAST)  = LINENUM .ZLRANGE'
+ IF FIRST ^= LAST THEN SIGNAL INVDSN
+ 'ISREDIT CURSOR = 'FIRST' 1'
+ CNDST=FIRST
+USECUR:
+ 'ISREDIT (ROW,COL) = CURSOR'
+ 'ISREDIT (DLNE) = LINE 'ROW
+ DCOL = COL
+ DROW = ROW
+ "ISPEXEC VPUT (DLNE DROW DCOL) ASIS"
+ CALL STRIPDS3
+ XC = RESULT
+ IF XC ^= 0 THEN SIGNAL INVDSN
+ RETURN 0
+INVDSN:
+ RETURN XC
+###END STRIPDSN
+$$$BEG T1
+ /* REXX */
+ADDRESS ISPEXEC
+TRACE I
+"ISREDIT MACRO"
+  A = DELWORD('NOW IS THE TIME',1,1)
+  A = DELWORD('NOW IS THE TIME',2,1)
+  A = DELWORD('NOW IS THE TIME',3,1)
+  A = DELWORD('NOW IS THE TIME',4,1)
+  A = DELWORD('NOW IS THE TIME',3,2)
+  EXIT
+  DST = 'LINE_BEFORE'
+  CNDST = 1
+  DQ = '"'
+  SQ = "'"
+  "ISREDIT SCAN = OFF"
+  P1 = 'ISREDIT 'VALUE(DST) CNDST' = DATALINE "'P1'"'
+  B = POS(DQ,P1)
+  DO WHILE B > 0
+   P1 = SUBSTR(P1,1,B)||SUBSTR(P1,B)
+   B = POS(DQ,P1,B+2)
+   END
+  'ISREDIT 'VALUE(DST) CNDST' = DATALINE "'P1'"'
+  "ISREDIT "VALUE(DST) CNDST" = DATALINE '"P1"'"
+###END T1
+$$$BEG ZX
+ /* REXX */
+ "ISREDIT MACRO NOPROCESS"
+ "ISPEXEC ZEXPAND"
+###END ZX
+$$$BEG CTGV91E0
+ /* REXX */
+   ADDRESS ISPEXEC
+ /* TRACE ?I */
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   "ISREDIT CAPS OFF"
+   'ISREDIT (OURDSN) = DATASET'
+   'ISREDIT (OURMBR) = MEMBER'
+/* if substr(ourdsn,length(ourdsn)-1,2) \= '.S' then signal exitrc6
+   if OURMBR \= 'V910ENV' then signal EXITRC4   */
+   mydt=DATE('S')||' '||SYSVAR(SYSUID)
+   "ISREDIT FIND 'R910' first"
+   IF RC = 0 THEN SIGNAL EXITRC2
+   CTGINI=OURDSN||'(V910ENV)'
+   INSRT1E=copies('#',70)
+   "ISREDIT FIND '"INSRT1E"' first"
+   IF RC \= 0 THEN SIGNAL insrttop
+   "isredit (er, ec) = cursor"
+   if (er-1) > 5  then signal insrttop
+    'ISREDIT DELETE '1  er
+insrttop:
+a = left("# Version: 9.1 00",38)||mydt
+bb='# Platform: zOS'
+c='# Date    :'||mydt
+d=left('# Converted to V910 requirements',52)||mydt
+e='#  Chgned ref to r910sys from r900sys'
+f='#        JAVA 17'
+g='#        IPIC server idle timeout default setting 0 from 60(min)'
+h='#  LOGICALSERVER section definitions are deprecated and'
+i='#   superseded by policy-based dynamic server selection definitions.'
+   FNDT1='##'
+   "ISREDIT FIND '"FNDT1"' 1 2"
+   if rc \= 0 then signal insrtver
+   "isredit (br, bc) = cursor"
+   "ISREDIT FIND '"FNDT1"' 1 2"
+   if rc \= 0 then signal insrtver
+   "isredit (er, ec) = cursor"
+   if (er-br) > 5  then signal insrtver
+    'ISREDIT DELETE 'br  er
+insrtver:
+    'ISREDIT LINE_BEFORE 1 = DATALINE "'INSRT1E'"'
+    'ISREDIT LINE_BEFORE 1 = DATALINE "'C'"'
+    'ISREDIT LINE_BEFORE 1 = DATALINE "'BB'"'
+    'ISREDIT LINE_BEFORE 1 = DATALINE "'A'"'
+    'ISREDIT LINE_BEFORE 1 = DATALINE "'INSRT1E'"'
+use_old_MR:
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '#' 1 1 x all"
+ /* TRACE ?I */
+   FNDT1='# Insert any user comments here'
+   "ISREDIT FIND '"FNDT1"' nx"
+   if rc = 0 then signal cmtsfnd
+   FNDT2='# Converted with CTGV90EV'
+   "ISREDIT FIND '"FNDT2"' nx"
+   if rc \= 0 then signal nocmtsfnd
+   "isredit (MR, MC) = cursor"
+   'ISREDIT LINE_BEFORE 'MR' = DATALINE "'FNDT1'"'
+   SIGNAL CMTSFND2
+   mr = mr - 1
+   signal nocmtsfnd2
+cmtsfnd:
+   "isredit (MR, MC) = cursor"
+cmtsfnd2:
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'h'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'g'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'f'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'e'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'d'"'
+nocmtsfnd:
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '#' 1 1 x all"
+   "ISREDIT FLIP"
+   "isredit find 'PATH=' 1 5 nx first"
+   if rc \= 0 then signal exitrc10
+   "isredit change '/r900put/' '/r910sys/' .zcsr .zcsr"
+   "isredit change '/r900sys/' '/r910sys/' .zcsr .zcsr"
+   "isredit find 'STEPLIB' nx"
+   if rc = 0 then do
+    "isredit change '.R900.' '.R910.' .zcsr .zcsr"
+    end
+k='/usr/lpp/java1764/J7.0_64/bin'
+   "ISREDIT FIND '"k"' nx first"
+   if rc \= 0 then signal exitrc12
+   "ISREDIT FIND '"r8"' nx"
+   if rc = 0 then signal exitrc14
+   "ISREDIT FIND '"r90"' nx"
+   if rc = 0 then signal exitrc16
+ FINIT:
+   'ISREDIT RESET excluded'
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC2:
+   ZEDSMSG = 'ALREADY R910?'
+   ZEDLMSG = 'This file is already converted to R910'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NOT V910ENV'
+   ZEDLMSG = 'This file is not the V910ENV file'
+   SIGNAL WRITIT
+ EXITRC6:
+   ZEDSMSG = 'NOT STAGE DSN'
+   ZEDLMSG = 'This file is not the STAGE DSN'
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ EXITRC10:
+   ZEDSMSG = 'PATH Missing'
+   ZEDLMSG = 'PATH Statement missing'
+   SIGNAL WRITIT
+ EXITRC12:
+   ZEDSMSG = 'Check JAVA'
+   ZEDLMSG = 'Check JAVA Path (missing?)'
+   SIGNAL WRITIT
+ EXITRC14:
+   ZEDSMSG = 'R8xx found?'
+   ZEDLMSG = 'R8xx reference found(????)'
+   SIGNAL WRITIT
+ EXITRC16:
+   ZEDSMSG = 'R9xx found?'
+   ZEDLMSG = 'R9xx reference found(????)'
+   SIGNAL WRITIT
+ WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   "ISREDIT UP MAX"
+   EXIT 4
+###END CTGV91E0
+$$$BEG CTGV91I0
+ /* REXX */
+   ADDRESS ISPEXEC
+ /* # Version for R910                   20150226 tcxs
+    #   remove uowvalidation and noshareclasses
+    #
+ */
+ /* TRACE ?I */
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   "ISREDIT CAPS OFF"
+   'ISREDIT (OURDSN) = DATASET'
+   'ISREDIT (OURMBR) = MEMBER'
+ /*if substr(ourdsn,length(ourdsn)-1,2) \= '.S' then signal exitrc6
+   if OURMBR \= 'V910INI' then signal EXITRC4 */
+   CTGINI=OURDSN||'(CTGINI)'
+   mydt=DATE('S')
+   "ISREDIT (LNE1) = LINE 1"
+   IF RC \= 0 THEN SIGNAL EXITRC8
+   IF WORDPOS('R910',LNE1) \= 0 THEN SIGNAL EXITRC2
+a=left('# Version for R910',38)||mydt||' '||SYSVAR(SYSUID)
+bb=left('#   Converted with CTGV91I1',38)||mydt||' '||SYSVAR(SYSUID)
+c='#   Remove uowvalidation and noshareclasses'
+   "ISREDIT LINE_BEFORE 1 = DATALINE '"C"'"
+   "ISREDIT LINE_BEFORE 1 = DATALINE '"bb"'"
+   "ISREDIT LINE_BEFORE 1 = DATALINE '"A"'"
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '#' 1 1 X ALL"
+   "ISREDIT FLIP"
+   "ISREDIT FIND 'uowvalidation' nx first"
+   if rc = 0 then do
+     "ISREDIT (MR, MC) = cursor"
+      if rc \= 0 then signal EXITRC8
+     "ISREDIT (LNE1) = LINE "MR
+     LNE1 = "#"||substr(LNE1,2)
+     "ISREDIT LINE "MR" = '"LNE1"'"
+    end
+   "ISREDIT FIND 'noshareclasses' nx first"
+   if rc = 0 then do
+     "ISREDIT (MR, MC) = cursor"
+      if rc \= 0 then signal EXITRC8
+     "ISREDIT (LNE1) = LINE "MR
+     LNE1 = "#"||substr(LNE1,2)
+     "ISREDIT LINE "MR" = '"LNE1"'"
+    end
+ FINIT:
+   'ISREDIT RESET excluded'
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC2:
+   ZEDSMSG = 'ALREADY R910?'
+   ZEDLMSG = 'This file is already converted to R910?'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NOT V910INI'
+   ZEDLMSG = 'This file is not the V910INI file'
+   SIGNAL WRITIT
+ EXITRC6:
+   ZEDSMSG = 'NOT STAGE DSN'
+   ZEDLMSG = 'This file is not the STAGE DSN'
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ WRITIT:
+   "ISREDIT UP MAX"
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV91I0
+$$$BEG ASMCLA
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA ASMCLA   - JUMP TO ASM EDIT OR ASSEMBLE PGM NOW IN EDIT   */
+/* CEMHELP ASMCLA   - ISPF EDIT MACRO BASED, HAS TWO FUNCTIONS.      */
+/* CEMHELP          - FIRST FUNCTION CAN ALLOW YOU TO JUMP INTO EDIT */
+/* CEMHELP          - ON A CICS COMMAND LEVEL ASM PGM.               */
+/* CEMHELP          - SECOND FUNCTION IS AN EDIT MACRO WHICH CAUSES  */
+/* CEMHELP          - THE CURRENT TABLE SOURCE MEMBER TO BE ASSEMBLED*/
+/* CEMHELP          - VIA A SUBMITTED PGM   ASSEMBLY JOB.            */
+/* CEMHELP          - TWO PARMS REQUIRED. JUST PROVIDE THE           */
+/* CEMHELP          - D,T,A,P HIGH LEVEL QUALIFIER SUFFIX CHARACTER, */
+/* CEMHELP          - AND THE CICS RELEASE (I.E. 212 330 410), SO THE*/
+/* CEMHELP          - TSO SUBSECTION WILL ENTER EDIT ON THE CLVL     */
+/* CEMHELP          - DATASET.                                       */
+/* CEMHELP          - INVOKE THE SECOND FORM OF ASMCLA USING IT AS AN*/
+/* CEMHELP          - EDIT MACRO.  AS AN EDIT MACRO, NO PARMS ARE    */
+/* CEMHELP          - EXPECTED (OR PROCESSED).  THE MACRO WILL SAVE  */
+/* CEMHELP          - YOUR MEMBER (IF CHANGED), THEN JUMP INTO EDIT  */
+/* CEMHELP          - ON JCL AND TAILOR IT FOR YOUR CICS PGM  (INCL  */
+/* CEMHELP          - THE RELEASE, ENV, DTAP LEVEL).  IF YOU WISH TO */
+/* CEMHELP          - SEE THE JCL AND SUBMIT IT YOUR SELF, PLACE A   */
+/* CEMHELP          - 'Z' IN ANY LINE COMMAND FIELD AND THEN INVOKE  */
+/* CEMHELP          - ASMTAB FROM THE TABLE MEMBER. OR YOU CAN ISSUE */
+/* CEMHELP          - THE HJCL COMMAND TO SET A ISPF VAR WHICH WILL  */
+/* CEMHELP          - TOGGLE THE HOLD/NOHOLD VARIABLE. THIS MACRO IS */
+/* CEMHELP          - ISSUED PRIOR TO THE ASMTAB.       FINALLY, IF  */
+/* CEMHELP          - YOU DO NOT HOLD THE JCL, IT WILL BE AUTOMATICLY*/
+/* CEMHELP          - BE SUBMITTED.  IF YOU HOLD THE JCL FOR REVIEW, */
+/* CEMHELP          - YOU MUST SUBMIT THE JOB MANUALLY, AND THEN     */
+/* CEMHELP          - CANCEL THE EDIT JCL (SO YOU DO NOT SAVE JCL).  */
+/* CEMHELP          - THE JOB IS SUBMITTED WITH YOUR ID.             */
+/* CEMHELP END                                                       */
+  ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+  ARG KIXTYP KIXREL
+  IF KIXTYP = 'ASMMOD' THEN DO
+   EXECSEL = 'ASMMOD'
+   SIGNAL DOEDIT
+   END
+  IF KIXTYP = 'ASMMAP' THEN DO
+   EXECSEL = 'ASMMAP'
+   SIGNAL DOEDIT
+   END
+  ELSE EXECSEL = 'ASMCLA'
+  IF KIXTYP = '' THEN SIGNAL DOEDIT
+  IF KIXTYP = 'E' THEN KIXTYP = 'D'
+  SELECT
+  WHEN KIXREL = '' THEN SIGNAL SHOWFRMT
+  WHEN KIXREL = '510' THEN KIXSFX='ASM.SOURCE'
+  WHEN KIXREL = '520' THEN KIXSFX='ASM.SOURCE'
+  WHEN KIXREL = '530' THEN KIXSFX='ASM.SOURCE'
+   OTHERWISE SIGNAL SHOWFRMT
+   END
+  EDSN='TTE'KIXTYP'.TSK.P.R'KIXREL'.'KIXSFX
+  "ISPEXEC EDIT DATASET('"EDSN"')"
+  EXIT
+DOEDIT:
+ XPSW='NO'
+ "ISREDIT MACRO NOPROCESS (XPSW)"
+ IF RC ^= 0 THEN SIGNAL ALRDYMAC
+  /* TRACE I */
+ "ISREDIT PROCESS RANGE Z"
+ IF RC = 0 THEN ASMSTOP = 0
+  ELSE ASMSTOP = 1
+ALRDYMAC:
+ IF XPSW = 'XPED' | XPSW = 'YE'| XPSW='YES' THEN  XPSW='YE'
+  ELSE XPSW='NO'
+ "ISREDIT (ROW COL) = CURSOR"
+ SUID=SYSVAR(SYSUID)
+ EDTRC = 4
+ "ISREDIT (ASMDSN) = DATASET"
+ IF RC ^= 0 THEN SIGNAL EXITRC4
+ "ISREDIT (ASMMBR) = MEMBER"
+ IF RC ^= 0 THEN SIGNAL EXITRC4
+ IF EXECSEL^='ASMMOD' & EXECSEL ^= 'ASMMAP' THEN EXECSEL='ASMCLA'
+  "ISPEXEC VPUT (EXECSEL ASMDSN ASMMBR ASMSTOP XPSW) ASIS"
+ IF RC ^= 0 THEN SIGNAL EXITRC8
+ "ISREDIT (MYCHG) = DATA_CHANGED"
+ IF MYCHG = 'YES' THEN DO
+  "ISREDIT SAVE"
+  IF RC > 4 THEN SIGNAL EXITRC10
+  END
+ CALL ASMINCL
+  EDSN='TTED.TSK.P.TCEM.CNTL('EXECSEL')'
+ "ISPEXEC EDIT DATASET('"EDSN"') MACRO(CIXXMAC)"
+  XC = RC
+  IF SUID='TCEM' THEN DO
+  "ISPEXEC EDIT DATASET('"EDSN"') MACRO(MYAUTSAV)"
+   END
+  IF XC > 8 THEN SIGNAL EXITRC12
+  "ISPEXEC VGET (EDTRC) ASIS"
+  IF RC ^= 0 THEN SIGNAL EXITRC12
+  IF EDTRC > 4 THEN SIGNAL EXITRC12
+  IF ASMSTOP = 0 THEN "ISREDIT CURSOR = "ROW" 0"
+EXITRC0:
+ ZEDSMSG = 'ASMCLA SUB OK'
+ ZEDLMSG = 'PGM ASSEMBLY SUBMITTED. FINISHED.'
+ SIGNAL WRITIT
+EXITRC4:
+ ZEDSMSG = 'INVALID DSN/MBR'
+ ZEDLMSG = 'INVALID DSN OR MEMBER SOURCE. NO ATTEMPT AT JCL'
+ SIGNAL WRITIT
+SHOWFRMT:
+ ZEDSMSG = 'INVOKATION'
+ ZEDLMSG = 'INVOKATION ERROR. SEEK CEMHELP.'
+ SIGNAL WRITIT
+EXITRC8:
+ ZEDSMSG = 'SYM VAR ERRORS'
+ ZEDLMSG = 'DSN/MBR SYMBOLIC VARS COULD NOT BE SAVED. NO ATTEMPT AT JCL'
+ SIGNAL WRITIT
+EXITRC10:
+ ZEDSMSG = 'SAVE ERROR'
+ ZEDLMSG = 'PGM COULD NOT BE SAVED FOR PROCESSING. NO SUBMIT'
+ SIGNAL WRITIT
+EXITRC12:
+ ZEDSMSG = 'SUB ERROR'
+ ZEDLMSG = 'SUBMIT PROCESS INDICATES A NON ZERO RETURN CODE'
+ SIGNAL WRITIT
+WRITIT:
+ "ISPEXEC SETMSG MSG(ISRZ000)"
+DONEIN:
+ IF EDTRC = 0 THEN "ISREDIT END"
+  ELSE RETURN 0
+###END ASMCLA
+$$$BEG BDTMAC
+ /* REXX */
+ /* CEMHELP BEGIN                                                   */
+ /* CEMHELA          -                                              */
+ /* CEMHELP          - ISPF BASE RESTRICTED                         */
+ /* CEMHELP          - TTEP.TSK.S.TCEM.FACMPD                       */
+ /* CEMHELP END                                                     */
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO PROCESS"
+ 'ISREDIT (MBRLST) = MEMBER'
+ A=MBRLST
+ EDTRC = 0
+ "ISPEXEC VGET (CURGRP) ASIS"
+ "ISPEXEC VGET (NODE) ASIS"
+ "ISPEXEC VGET (EXECSEL SUID INDSN) ASIS"
+ /*   JBDTN OR BMBRN FOR NEW DS */
+ IF SUBSTR(EXECSEL,LENGTH(EXECSEL)) = 'N' THEN DO
+  X = LISTDSI("'"INDSN"'" DIRECTORY)
+  IF X ^= 0 THEN SIGNAL NOSTEP
+  INDU = SYSUNITS
+  IF INDU = 'CYLINDER' THEN INDU = 'CYL'
+   ELSE IF INDU = 'TRACK' THEN INDU = 'TRK'
+    ELSE IF INDU = 'BLOCK' THEN INDU = SYSBLKSIZE
+     ELSE SIGNAL EXITRC8
+  INDP = SYSALLOC
+  INDS = SYSSECONDS
+  IF SYSDSORG = 'PS' THEN INDD=')),'
+   ELSE DO
+    IF SYSDSORG = 'PO' THEN DO
+     IF POS('LIBRARY',SYSDSSMS)^=0 | SYSDSSMS='PDSE' THEN DO
+      INDD=')),DSNTYPE=LIBRARY,'
+      END
+      ELSE DO
+      INDD=','SYSADIRBLK'),,CONTIG),'
+      END
+     END
+    END
+   S1SUT2 = '//   SPACE=('INDU',('INDP','INDS'),RLSE)'
+   SUT2A = '//SYSUT2 DD DISP=(NEW,CATLG,DELETE),'
+   SUT2B = '// SPACE=('INDU',('INDP','INDS||INDD
+   SUT2C = '// DCB=(RECFM='SYSRECFM',LRECL='SYSLRECL||,
+       ',BLKSIZE='SYSBLKSIZE',DSORG='SYSDSORG'),'
+   SUT2D = '// DSN='INDSN
+   END
+   ELSE DO
+   S1SUT2 = '//   SPACE=(CYL,(50,10),RLSE)'
+   SUT2A = '//SYSUT2 DD DISP=SHR,'
+   SUT2B = '// DSN='INDSN
+   SUT2C = '//*'
+   SUT2D = '//*'
+  END
+ "ISREDIT CHANGE '!SUID' '"SUID"' ALL"
+  IF RC > 0 THEN DO
+   "ISREDIT DELETE ALL NX"
+   "ISREDIT (OURMBR) = MEMBER"
+   OML=LENGTH(OURMBR)
+   OURMSFX=SUBSTR(OURMBR,1,4)
+   "ISREDIT COPY ZZZZ"OURMSFX" BEFORE .ZFIRST"
+   IF RC ^=0 THEN SIGNAL NOSTEP
+   "ISREDIT SAVE"
+   "ISREDIT CHANGE '!SUID' '"SUID"' ALL"
+   IF RC > 0 THEN SIGNAL NOSTEP
+   END
+ "ISREDIT CHANGE '#CURGRP#' '"CURGRP"' ALL"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ "ISREDIT CHANGE '#NODE#' '"NODE"' ALL"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ "ISREDIT CHANGE '//*S1SUT2' '"S1SUT2"' ALL"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ "ISREDIT CHANGE '//*SUT2A' '"SUT2A"' ALL"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ "ISREDIT CHANGE '//*SUT2B' '"SUT2B"' ALL"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ "ISREDIT CHANGE '//*SUT2C' '"SUT2C"' ALL"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ "ISREDIT CHANGE '//*SUT2D' '"SUT2D"' ALL"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ "ISPEXEC VGET (SELMBRN) ASIS"
+ IF RC ^= 0 THEN SIGNAL NOMBRS
+ IF SELMBRN ^> 0 THEN SIGNAL NOMBRS
+ "ISREDIT FIND '//*%' FIRST"
+ IF RC ^= 0 THEN SIGNAL NOSTEP
+ "ISREDIT (ROW,COL) = CURSOR"
+ IF RC ^= 0 THEN SIGNAL NOSTEP
+ DO I = 1 TO SELMBRN
+  "ISPEXEC VGET (SELMBR"I") ASIS"
+  INTERPRET 'TMP = SELMBR'I
+  TMP = ' SELECT MEMBER=(('TMP',,R))'
+  "ISREDIT LINE_BEFORE "ROW" = '"TMP"'"
+  END
+NOMBRS:
+ "ISREDIT CHANGE '!INDSN' '"INDSN"' ALL"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ "ISPEXEC VGET (HJCLIND) ASIS"
+ IF RC = 0 THEN DO
+  IF HJCLIND = 'HOLD' THEN SIGNAL HLDIND
+   ELSE SIGNAL DOSUB
+  END
+ HJCLIND = 'NOHOLD'
+ "ISPEXEC VPUT (HJCLIND) ASIS"
+DOSUB:
+ "ISREDIT SUBMIT"
+ IF RC > 0 THEN SIGNAL NOSTEP
+ EDTRC = 0
+ SIGNAL EXITIT
+NOSTEP:
+ EDTRC = 4
+ SIGNAL EXITIT
+EXITRC8:
+ EDTRC = 8
+ SIGNAL EXITIT
+EXITIT:
+ "ISPEXEC VPUT (EDTRC) ASIS"
+ "ISREDIT CANCEL"
+ RETURN
+HLDIND:
+ EDTRC = 0
+ "ISPEXEC VPUT (EDTRC) ASIS"
+ ZEDSMSG = 'HOLD\SUB\CAN'
+ ZEDLMSG = 'HOLD IND, MANUAL SUB, THEN CANCEL'
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+ RETURN 1
+###END BDTMAC
+$$$BEG JBDTL
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA JBDTL    - JUMP BDT, SEL MBR FROM JUMP DSN MBR LIST TO DES*/
+/* CEMHELP JBDTL    - ISPF EDIT MACRO BASED, 'JUMP BDT',    USED TO  */
+/* CEMHELP          - SELECT MBRS FROM A LIST FOR DSN JUMP TARGET    */
+/* CEMHELP          - MECHANISM. ALSO TAKES A PARM AS THE TARGET.    */
+/* CEMHELP          - N11/N12/N2 OR ALL                              */
+/* CEMHELP          - SELECTED BY USING:                             */
+/* CEMHELP          - 'S' LINE CMD FOR DSN  STARTING IN POS1 OR      */
+/* CEMHELP          - 'S' LINE CMD FOR DSN FOLLOWING 'DSN=' IN LINE  */
+/* CEMHELP          - DSN INDICATED BY POSITION ANYWHERE WITHIN A    */
+/* CEMHELP          -  LINE WITH A 'DSN=' LITERAL                    */
+/* CEMHELP          - SPECIFICALLY BY CURSOR POSITION ON FIRST CHAR  */
+/* CEMHELP          -  OF A DSN                                      */
+/* CEMHELP MACROS                                                    */
+/* CEMHELP XMBR     - XMIT CURRENT MEMBER TO SELECTED GROUP(S)       */
+/* CEMHELP BMBR     - BDT CURRENT MEMBER TO SELECTED GROUP(S)        */
+/* CEMHELP BMBRL    - SELECT MBR FROM DSN (IN EDIT UPON) AND BDT     */
+/* CEMHELP XMBRL    - SELECT MBR FROM DSN (IN EDIT UPON) AND XMIT    */
+/* CEMHELP JBDTR    - JUMP BDT FOR DSN, REPLACE ALL TGT W/ ALL SRC   */
+/* CEMHELP JBDTN    - JUMP BDT FOR DSN, CREATE TGT WITH ALL SRC DSN  */
+/* CEMHELP JBDTL    - JUMP BDT, SEL MBR FROM JUMP DSN MBR LIST TO DES*/
+/* CEMHELP EXECS                                                     */
+/* CEMHELP XMLST    - SELECT MEMBERS OF PDS TO XMIT   TO SELECT GRPS */
+/* CEMHELP BMLST    - SELECT MEMBERS OF PDS TO BDT TO SELECT GRPS    */
+/* CEMHELP BMLSTN   - SELECT MEMBERS OF PDS TO BDT TO TGT (CREATE DSN*/
+/* CEMHELP END                                                       */
+ ADDRESS ISPEXEC
+ MCMD = 'JBDTL'
+ 'ISREDIT MACRO NOPROCESS (RESP)'
+ IF RESP = '' THEN RESP = '#'
+  ELSE DO
+  UPPER RESP
+  RESP=TRANSLATE(RESP,',',' ')
+  END
+ CALL JBD 'JBDTL'
+ XC = RESULT
+ IF XC ^= 0 THEN SIGNAL EXITRC8
+ 'ISPEXEC VGET (INDSN) ASIS'
+ CALL XMLST2 MCMD INDSN RESP
+ IF XC ^= 0 THEN SIGNAL EXITRC8
+ ZEDSMSG = MCMD' SUCCESSFUL'
+ ZEDLMSG = MCMD' FOR DSN WAS SUCCESSFUL'
+ SIGNAL WRITIT
+EXITRC8:
+ ZEDSMSG = 'PARM ERROR'
+ ZEDLMSG = 'ERROR OCCURRED IN PARM SPECIFICATION'
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+###END JBDTL
+$$$BEG FALMODM2
+ /* REXX */
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO PROCESS"
+ "ISREDIT EXCLUDE .ZFIRST .ZLAST ALL"
+ "ISREDIT HIDE X"
+ /* TRACE ?I */
+ MODLST = "ACF60ACF ACF60COM ACF60SEM ACF60STO ACF63SHO ACF6ASCP "||,
+ "ACF6CLID ACF6DINF ACF6EENT ACF70CMP ACF71TST"
+ MYRC = RC
+ OCT=0
+ FNDSTR=''
+ NWDS = WORDS(MODLST)
+ SPRM='FIRST'
+ "ISREDIT EXCLUDE .ZFIRST .ZLAST ALL"
+ DO I = 1 TO NWDS
+  S4WD = WORD(MODLST,I)
+  OCT=OCT+1
+  OP.OCT="******************BEGIN "||S4WD
+  DO WHILE MYRC = 0
+   "ISREDIT FIND '"S4WD"' X "SPRM
+   MYRC = RC
+   IF MYRC = 0 THEN DO
+    "ISREDIT (MROW, MCOL) = CURSOR"
+    "ISREDIT (FNDSTR) = LINE "MROW
+    OCT=OCT+1
+    OP.OCT = STRIP(FNDSTR,'B')
+    SPRM='NEXT'
+    END
+    ELSE DO
+   /* "ISREDIT EXCLUDE .ZFIRST .ZLAST ALL" */
+   /* "ISREDIT UP MAX"                       */
+    SPRM='FIRST'
+    END
+   END
+   MYRC = 0
+  OCT=OCT+1
+  OP.OCT="******************  END "||S4WD
+  END
+ IF OCT > 0 THEN DO
+   OCT=OCT+1
+   OP.OCT = COPIES("*",80)
+   "ISREDIT EXCLUDE .ZFIRST .ZLAST ALL"
+   DO I = OCT TO 1 BY -1
+    "ISREDIT LINE_BEFORE 1 = DATALINE '"OP.I"'"
+    END
+   END
+ "ISREDIT UP MAX"
+ RETURN 0
+###END FALMODM2
+$$$BEG FALMODMC
+ /* REXX */
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO PROCESS"
+ "ISREDIT EXCLUDE .ZFIRST .ZLAST ALL"
+ MYRC = RC
+ DO WHILE MYRC = 0
+  "ISREDIT SEEK 'PAGE     1' X NEXT"
+  MYRC = RC
+  IF MYRC = 0 THEN DO
+   "ISREDIT FIND 'CSECT MAP' X NEXT"
+   "ISREDIT FIND 'LINKED ON' X NEXT"
+   END
+  END
+ "ISREDIT UP MAX"
+ RETURN 0
+###END FALMODMC
+$$$BEG CTGV91J0
+ /* REXX */
+   ADDRESS ISPEXEC
+   /*TRACE ?I */
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   'ISREDIT (OURDSN) = DATASET'
+   'ISREDIT (OURMBR) = MEMBER'
+   if substr(ourdsn,length(ourdsn)-1,2) \= '.S' then signal exitrc4
+   mydt=DATE('S')||' '||SYSVAR(SYSUID)
+   "ISREDIT FIND 'R910' first"
+   IF RC = 0 THEN SIGNAL EXITRC2
+   "ISREDIT FIND 'PGM=CTGBATCH' first"
+   IF RC \= 0 THEN SIGNAL EXITRC12
+    INSRT0='//'||copies("*",50)
+    INSRT1='//* '||DATE(S)||left(' Converted R910',30)||SYSVAR(SYSUID)
+   "ISREDIT FIND '//*****' first"
+   if rc \= 0 then do
+    "ISREDIT FIND '//*' first"
+    if rc \= 0 then signal exitrc10
+    end
+   'ISREDIT (MR,MC) = CURSOR'
+   mr = mr + 0
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT0'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "//* "'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "//* "'
+   "ISREDIT FIND '//ESYLIB' first"
+    if rc \= 0 then signal exitrc10
+   "ISREDIT FIND '//*****' NEXT"
+   if rc = 0 then do
+    'ISREDIT (MR,MC) = CURSOR'
+    mr = mr + 0
+    INSRT2='//*  Version altered for R910'
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT2'"'
+    END
+   "ISREDIT FIND '// INCLUDE MEMBER=S90D' NEXT"
+   if rc = 0 then do
+    INSRT3='// INCLUDE MEMBER=S91DTG'
+    signal chgsmbr
+    end
+   "ISREDIT FIND '// INCLUDE MEMBER=S90T' NEXT"
+   if rc = 0 then do
+    INSRT3='// INCLUDE MEMBER=S91TTG'
+    signal chgsmbr
+    end
+   "ISREDIT FIND '// INCLUDE MEMBER=S90P' NEXT"
+   if rc = 0 then do
+    INSRT3='// INCLUDE MEMBER=S91PTG'
+    signal chgsmbr
+    end
+   signal exitrc10
+ chgsmbr:
+   'ISREDIT (MR,MC) = CURSOR'
+   mr = mr + 0
+   "ISREDIT LINE "MR" = '"INSRT3"'"
+   "ISREDIT X ALL"
+   "ISREDIT FIND '//*' X ALL"
+   "ISREDIT FLIP"
+   "ISREDIT CHANGE c'.R800.' '.R910.' nx all"
+   "ISREDIT CHANGE c'.R810.' '.R910.' nx all"
+   "ISREDIT CHANGE c'.R900.' '.R910.' nx all"
+   "ISREDIT CHANGE c'.PUT.' '.SYS.' nx all"
+   "ISREDIT CHANGE c'/r900put/' c'/r910sys/' nx all"
+   "ISREDIT CHANGE c'/r900sys/' c'/r910sys/' nx all"
+ FINIT:
+   'ISREDIT RESET excluded'
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC2:
+   ZEDSMSG = 'ALREADY R910?'
+   ZEDLMSG = 'This file is already converted to R910'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NOT STAGE DSN'
+   ZEDLMSG = 'This file is not the STAGE DSN'
+   SIGNAL WRITIT
+ EXITRC6:
+   ZEDSMSG = 'NO JCL FOUND'
+   ZEDLMSG = 'MEMBER DOES NOT CONTAIN JCL (// IN COLUME 1-2)'
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ EXITRC10:
+   ZEDSMSG = 'NO JCL COMMENTS'
+   ZEDLMSG = 'NO JCL COMMENTS. INVALID MEMBER?'
+   SIGNAL WRITIT
+ EXITRC12:
+   ZEDSMSG = 'NOT CTG JCL'
+   ZEDLMSG = 'NO PGM=CTGBATCH was found. INVALID MEMBER?'
+   SIGNAL WRITIT
+ WRITIT:
+   "ISREDIT UP MAX"
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV91J0
+$$$BEG EXPLDPLN
+/* REXX */
+/* 123455555555 */
+/* 123456     x */
+/* 12345678     */
+ ADDRESS ISPEXEC
+ "ISREDIT MACRO NOPROCESS (SVVAR)"
+ "ISPEXEC CONTROL ERRORS RETURN"
+ TRACE ?I
+ "ISREDIT (T,B) = DISPLAY_LINES"
+ T=T+0             /* trace */
+ B=B+0
+ "ISREDIT (L,R) = DISPLAY_COLS"
+ L=L+0
+ R=R+0
+ "ISREDIT (BL,BR) = BOUNDS"
+ BL=BL+0
+ BR=BR+0
+ x=""
+ "ISREDIT EXCLUDE TRACE FIRST"
+ "isredit seek Trace all"
+ "isredit (sct) = seek_counts"
+ sct = sct + 0
+ "ISREDIT FLIP"
+ "ISREDIT SEEK DEF"
+ if rc = 0 then do
+ "ISREDIT (X) = XSTATUS .ZCSR"
+ "ISREDIT CHANGE ABC DEF .ZCSR .ZCSR"
+ "ISREDIT XSTATUS .ZCSR = X"
+ end
+ else do
+ "ISREDIT SEEK DEF"
+ "ISREDIT (X) = XSTATUS .ZCSR"
+ "ISREDIT CHANGE DEF ABC .ZCSR .ZCSR"
+ "ISREDIT XSTATUS .ZCSR = X"
+ end
+ EXIT
+###END EXPLDPLN
+$$$BEG CTGV90J1
+ /* REXX */
+   ADDRESS ISPEXEC
+   /*TRACE ?I */
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   'ISREDIT (OURDSN) = DATASET'
+   'ISREDIT (OURMBR) = MEMBER'
+   if substr(OURDSN,length(OURDSN)-1,2) \= '.S' then signal EXITRC4
+   "ISREDIT FIND '//*****' first"
+   if rc = 0 then do
+    INSRT0='//* '||DATE(S)||'  Changed for PARMLIB CTGENV PDSE   '||,
+        SYSVAR(SYSUID)
+    INSRT1='//*  VERSION ALTERED by CTGV90J1'
+    'ISREDIT (MR,MC) = CURSOR'
+    mr = mr + 0
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "//* "'
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1'"'
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT0'"'
+    end
+   FNDT0='SET APPLID='
+   "ISREDIT X ALL"
+   "ISREDIT FIND '//*' X ALL"
+   "ISREDIT FIND '"FNDT0"' x first"
+   if rc \= 0 then do
+    myaplid='XXXXXXXX'
+    mytyp='X'
+    signal NO_APLID
+    end
+   "ISREDIT (MR,MC) = CURSOR"
+   MR = MR + 0
+   "ISREDIT (myaplid) = LINE "MR
+   myaplid=substr(myaplid,MC+13,7)
+   UPPER myaplid
+   mytyp=substr(myaplid,4,1)
+NO_APLID:
+   INSRT2="// SET CTGUSR=TTE"||mytyp||".TSK.D."||myaplid||,
+     ".PARMLIB(CTGENV)"
+   FNDT1='// SET LEOPTS='
+   "ISREDIT FIND '"FNDT1"' X FIRST"
+   if rc \= 0 then signal exitrc8
+   'ISREDIT (MR,MC) = CURSOR'
+   mr = mr + 0
+   'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT2'"'
+/*                                                      */
+   FNDT2='//STDENV DD PATH'
+   "ISREDIT FIND '"FNDT2"' X FIRST"
+   if rc \= 0 then signal exitrc8
+   'ISREDIT (MR,MC) = CURSOR'
+   mr = mr + 0
+   "ISREDIT CHANGE '//STDENV' '//*STDENV' 1 8 NX"
+/*                                                      */
+   FNDT3='PATHOPTS='
+   "ISREDIT FIND '"FNDT3"' X "
+   if rc \= 0 then signal exitrc8
+   'ISREDIT (MR,MC) = CURSOR'
+   mr = mr + 0
+   "ISREDIT (TMP) = LINE "MR
+   TMP = '//*'||substr(TMP,4)
+   "ISREDIT LINE "MR" = '"TMP"'"
+/*                                                      */
+    "ISREDIT SCAN OFF"
+   INSRT3="//STDENV   DD DISP=SHR,DSN=&&CTGUSR"
+    MR = MR + 0
+    "ISREDIT LINE_AFTER "MR" = DATALINE '"INSRT3"'"
+ FINIT:
+   /*'ISREDIT RESET' */
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NO JCL FOUND'
+   ZEDLMSG = 'MEMBER DOES NOT CONTAIN JCL (// IN COLUME 1-2)'
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV90J1
+$$$BEG CTGV90I1
+ /* REXX */
+   ADDRESS ISPEXEC
+ /* TRACE ?I */
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   "ISREDIT CAPS OFF"
+   'ISREDIT (OURDSN) = DATASET'
+   'ISREDIT (OURMBR) = MEMBER'
+   if OURMBR \= 'CTGINI' then signal EXITRC4
+   CTGINI=OURDSN||'(CTGINI)'
+   mydt=DATE('S')
+   FNDT0 =' SECTION PRODUCT'
+a='# Converted with CTGV90I1   'mydt||' '||SYSVAR(SYSUID)
+bb='# Converted to PDSE MEMBERS for CTGENV and CTGINI    '||mydt
+c='#  No physical changes to this CTGINI file'
+d='#   which was copied from USS region config ctg.ini'
+e='#    in order to secure the initialization files.'
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '"FNDT0"' 1 16 X"
+   if rc \= 0 then do
+   "ISREDIT FIND '#' 1 1 first x"
+    if rc \= 0 then signal EXITRC8
+    end
+   'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+   'ISREDIT LINE_BEFORE  'MR' = DATALINE "'e'"'
+   'ISREDIT LINE_BEFORE  'MR' = DATALINE "'d'"'
+   'ISREDIT LINE_BEFORE  'MR' = DATALINE "'c'"'
+   'ISREDIT LINE_BEFORE  'MR' = DATALINE "'bb'"'
+   'ISREDIT LINE_BEFORE  'MR' = DATALINE "'a'"'
+ FINIT:
+   'ISREDIT RESET'
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NOT CTGINI'
+   ZEDLMSG = 'This file is not the CTGINI file'
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV90I1
+$$$BEG CTGV90E1
+ /* REXX */
+   ADDRESS ISPEXEC
+ /* TRACE ?I */
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   "ISREDIT CAPS OFF"
+   'ISREDIT (OURDSN) = DATASET'
+   'ISREDIT (OURMBR) = MEMBER'
+   if OURMBR \= 'CTGENV' then signal EXITRC4
+   CTGINI=OURDSN||'(CTGINI)'
+   mydt=DATE('S')
+   FNDT0 ='# Date/time:'
+   INSRT0='# Date    : '||mydt||' '||SYSVAR(SYSUID)
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '"FNDT0"' 1 X"
+   if rc \= 0 then do
+    'ISREDIT LINE_BEFORE '1' = DATALINE "'INSRT0'"'
+    MR = 1
+    end
+    else do
+    'ISREDIT (MR,MC) = CURSOR'
+    MR=MR+0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT0'"'
+    end
+   INSRT1E='###########################################################'
+a='# Converted with CTGV90E1   'mydt||' '||SYSVAR(SYSUID)
+bb='# Converted to PDSE MEMBERS for CTGENV and CTGINI    '||mydt
+c='#  Chgned ref to CICSCLI from using USS ctg.ini config'
+d='#   to 'CTGINI
+e='#    in order to secure the initialization files.'
+   FNDT1='### '
+   FNDT2='# Insert any user comments here'
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '"FNDT1"' 1 4 X"
+   if rc \= 0 then do
+   "ISREDIT FIND '"FNDT2"' 1 X"
+    if rc \= 0 then signal use_old_MR
+    end
+   'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+use_old_MR:
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'e'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'d'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'c'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'bb'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'a'"'
+   kixcli="CICSCLI=//'"||CTGINI||"'"
+   FNDT3='CICSCLI='
+   "ISREDIT FIND '"FNDT3"' 1 X ALL"
+   IF RC \= 0 THEN signal EXITRC8
+    'ISREDIT (MR,MC) = CURSOR'
+   "ISREDIT CHANGE 'CICSCLI' '#CICSCLI' 1 7 nx"
+    MR = MR + 0
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "'kixcli'"'
+ FINIT:
+   'ISREDIT RESET'
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NOT CTGENV'
+   ZEDLMSG = 'This file is not the CTGENV file'
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV90E1
+$$$BEG CTGV91EV
+ /* REXX */
+   ADDRESS ISPEXEC
+   /*TRACE ?I*/
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   "ISREDIT CAPS OFF"
+   envfile='ctgv900.s'
+   mydt=DATE('O')
+   INSRT1 ='# STDENV '
+   INSRT1A='# Converted with CTGV90EV   'mydt||' '||SYSVAR(SYSUID)
+   INSRT1B='# Version: 9.0 0'
+   INSRT1C='# Platform: zOS'
+   INSRT1D='# Date    : '||mydt||' '||SYSVAR(SYSUID)
+   INSRT1E='###########################################################'
+   MR=0
+a='###'
+bb='# Converted to V900 requirements                     '||mydt
+c='#  Chgned ref to r900sys from r8xxsys'
+d='#        JAVA 17'
+e='#        IPIC server idle timeout default setting 0 from 60(min)'
+   fndstr1='# Insert any user comments here'
+   'ISREDIT (OURDSN) = DATASET'
+   fp=pos(envfile,OURDSN)
+   IF fp = 0 then signal exitrc4
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '"INSRT1E"' 1 X"
+   if rc \= 0 then do
+    'ISREDIT LINE_BEFORE '1' = DATALINE "'INSRT1E'"'
+    'ISREDIT LINE_BEFORE '1' = DATALINE "'INSRT1E'"'
+    MR = 1
+    signal nodel
+    end
+   'ISREDIT (MR,MC) = CURSOR'
+   MRS = MR + 1
+   "ISREDIT FIND '"INSRT1E"' 1 X NEXT"
+   if RC \= 0 then do
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1E'"'
+    signal nodel
+    end
+   'ISREDIT (MRP,MC) = CURSOR'
+   MRP = MRP - 1
+   md = MRP - MRS
+   if md < 1 then signal nodel
+   if md > 3 then MRP = MRS+ 3
+   'isredit delete 'MRS MRP
+ nodel:
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1D'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1C'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1B'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1A'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1'"'
+   /*                 */
+   "ISREDIT FIND '"fndstr1"' x first"
+   IF RC \= 0 THEN DO
+    "ISREDIT FIND '"INSRT1E"' 1 FIRST"
+    "ISREDIT FIND '"INSRT1E"' 1 NEXT"
+    end
+   'ISREDIT (MR,MC) = CURSOR'
+   MR = MR + 0
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'e'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'d'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'c'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'bb'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'a'"'
+   p1='PATH=/bin:/shared_products/ctgtest/r900sys/bin:\'
+   p2='     /usr/lpp/java1764/J7.0_64/bin'
+   "ISREDIT FIND '#' 1 X ALL"
+   "ISREDIT FIND 'PATH=' X"
+   IF RC \= 0 THEN DO
+    "ISREDIT FIND ' ' 1 1 X"
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    END
+    ELSE DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    END
+   'ISREDIT LINE_BEFORE 'MR' = DATALINE "'p2'"'
+   'ISREDIT LINE_BEFORE 'MR' = DATALINE "'p1'"'
+    MR = MR + 1
+   "ISREDIT FIND 'CTG_EXCI_INIT=' X FIRST"
+   IF RC \= 0 THEN DO
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "CTG_EXCI_INIT=YES"'
+    END
+   MR = MR + 1
+   "ISREDIT FIND 'TZ=' X FIRST"
+   IF RC \= 0 THEN DO
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "TZ=EST5EDT"'
+    END
+ FINIT:
+   'ISREDIT RESET'
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NOT 'envfile
+   ZEDLMSG = 'This file is not the 'envfile
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV91EV
+$$$BEG CTGV90IN
+ /* REXX */
+   ADDRESS ISPEXEC
+   /*TRACE ?I*/
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   "ISREDIT CAPS OFF"
+   inifile='ctgi900.s'
+   INSRT1A='# Version for V900                 '||DATE('O')||' '||,
+       SYSVAR(SYSUID)
+   INSRT1B='#   remove uowvalidation and noshareclasses V900'
+   INSRT1C='#                                           V900'
+   INSRT1D='#   Converted with CTGV90IN                 V900'
+   INSRT2='    noinput=on         # chg from off V900'
+   INSRT3='#   nonames            # not valid in V900'
+   INSRT4='#   notime             # not valid in V900'
+   INSRT5='#   Quiet              # not valid in V900'
+   INSRT6='    stack=off          # chg from on  v900'
+   INSRT7='#   Start=cold         # Clear URs that are inflight V900'
+   INSRT8='#   statsport          # not valid in V800'
+   INSRT9='#   uowvalidation      # not valid in V900'
+   INSRT0='#   noshareclasses     # not valid in V900'
+   fndstr2='noinput='
+   fndstr3='nonames='
+   fndstr4='notime='
+   fndstr5='Quiet='
+   fndstr6='stack='
+   fndstr7='Start='
+   fndstr8='statsport='
+   fndstr9='uowvalidation='
+   fndstr0='noshareclasses'
+   'ISREDIT (OURDSN) = DATASET'
+   fp=pos(inifile,OURDSN)
+   IF fp = 0 then signal exitrc4
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '#' 1 1 X ALL"
+   "ISREDIT FIND 'Version' NX"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT1D'"'
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT1C'"'
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT1B'"'
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT1A'"'
+    END
+   "ISREDIT FIND '"fndstr2"' x first"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT2'"'
+    END
+   "ISREDIT FIND '"fndstr3"' x first"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT3'"'
+    END
+   "ISREDIT FIND '"fndstr4"' x first"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT4'"'
+    END
+   "ISREDIT FIND '"fndstr5"' x first"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT5'"'
+    END
+   "ISREDIT FIND '"fndstr5"' x first"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT6'"'
+    END
+   "ISREDIT FIND '"fndstr7"' x first"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT7'"'
+    END
+   "ISREDIT FIND '"fndstr8"' ALL"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT8'"'
+    END
+   "ISREDIT FIND '"fndstr9"' ALL"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT9'"'
+    END
+   "ISREDIT FIND '"fndstr0"' ALL"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT0'"'
+    END
+ FINIT:
+   'ISREDIT RESET'
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NOT 'inifile
+   ZEDLMSG = 'This file is not the 'inifile
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV90IN
+$$$BEG CTGV90EV
+ /* REXX */
+   ADDRESS ISPEXEC
+   /*TRACE ?I*/
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   "ISREDIT CAPS OFF"
+   envfile='ctgv900.s'
+   mydt=DATE('O')
+   INSRT1 ='# STDENV '
+   INSRT1A='# Converted with CTGV90EV   'mydt||' '||SYSVAR(SYSUID)
+   INSRT1B='# Version: 9.0 0'
+   INSRT1C='# Platform: zOS'
+   INSRT1D='# Date    : '||mydt||' '||SYSVAR(SYSUID)
+   INSRT1E='###########################################################'
+   MR=0
+a='###'
+bb='# Converted to V900 requirements                     '||mydt
+c='#  Chgned ref to r900sys from r8xxsys'
+d='#        JAVA 17'
+e='#        IPIC server idle timeout default setting 0 from 60(min)'
+   fndstr1='# Insert any user comments here'
+   'ISREDIT (OURDSN) = DATASET'
+   fp=pos(envfile,OURDSN)
+   IF fp = 0 then signal exitrc4
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '"INSRT1E"' 1 X"
+   if rc \= 0 then do
+    'ISREDIT LINE_BEFORE '1' = DATALINE "'INSRT1E'"'
+    'ISREDIT LINE_BEFORE '1' = DATALINE "'INSRT1E'"'
+    MR = 1
+    signal nodel
+    end
+   'ISREDIT (MR,MC) = CURSOR'
+   MRS = MR + 1
+   "ISREDIT FIND '"INSRT1E"' 1 X NEXT"
+   if RC \= 0 then do
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1E'"'
+    signal nodel
+    end
+   'ISREDIT (MRP,MC) = CURSOR'
+   MRP = MRP - 1
+   md = MRP - MRS
+   if md < 1 then signal nodel
+   if md > 3 then MRP = MRS+ 3
+   'isredit delete 'MRS MRP
+ nodel:
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1D'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1C'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1B'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1A'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'INSRT1'"'
+   /*                 */
+   "ISREDIT FIND '"fndstr1"' x first"
+   IF RC \= 0 THEN DO
+    "ISREDIT FIND '"INSRT1E"' 1 FIRST"
+    "ISREDIT FIND '"INSRT1E"' 1 NEXT"
+    end
+   'ISREDIT (MR,MC) = CURSOR'
+   MR = MR + 0
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'e'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'d'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'c'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'bb'"'
+   'ISREDIT LINE_AFTER  'MR' = DATALINE "'a'"'
+   p1='PATH=/bin:/shared_products/ctgtest/r900sys/bin:\'
+   p2='     /usr/lpp/java1764/J7.0_64/bin'
+   "ISREDIT FIND '#' 1 X ALL"
+   "ISREDIT FIND 'PATH=' X"
+   IF RC \= 0 THEN DO
+    "ISREDIT FIND ' ' 1 1 X"
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    END
+    ELSE DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    END
+   'ISREDIT LINE_BEFORE 'MR' = DATALINE "'p2'"'
+   'ISREDIT LINE_BEFORE 'MR' = DATALINE "'p1'"'
+    MR = MR + 1
+   "ISREDIT FIND 'CTG_EXCI_INIT=' X FIRST"
+   IF RC \= 0 THEN DO
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "CTG_EXCI_INIT=YES"'
+    END
+   MR = MR + 1
+   "ISREDIT FIND 'TZ=' X FIRST"
+   IF RC \= 0 THEN DO
+    'ISREDIT LINE_AFTER  'MR' = DATALINE "TZ=EST5EDT"'
+    END
+ FINIT:
+   'ISREDIT RESET'
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NOT 'envfile
+   ZEDLMSG = 'This file is not the 'envfile
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV90EV
+$$$BEG CTGV90JC
+ /* REXX */
+   ADDRESS ISPEXEC
+   /*TRACE ?I */
+   "ISREDIT MACRO PROCESS"
+   "ISPEXEC CONTROL ERRORS RETURN"
+   ADDRESS ISPEXEC
+   INSRT0='//*  changed for CTG V9'||copies(' ',30)||DATE(S)||,
+          ' '||SYSVAR(SYSUID)
+   mlng=length(insrt0)
+   INSRT1='//*  VERSION ALTERED FOR R900 by CTGV90JC'
+   INSRT2='// INCLUDE MEMBER=S90TTG'
+   INSRT3="// SET CTGHLQ='TTET.TSK.F.R900.SYS.CICSTG'"
+   "ISREDIT EXCLUDE ALL"
+   "ISREDIT FIND '//*' 1 3 X ALL"
+   "ISREDIT FIND '//*' 1 3 NX FIRST"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT LINE_AFTER 'MR' = DATALINE "'INSRT0'"'
+    END
+   "ISREDIT FIND 'VERSION' NX"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT1'"'
+    END
+   "ISREDIT FIND '// INCLUDE MEMBER=S8' 1 X"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT2'"'
+    END
+   "ISREDIT FIND '// SET CTGHLQ=' 1 X"
+   IF RC = 0 THEN DO
+    'ISREDIT (MR,MC) = CURSOR'
+    MR = MR + 0
+    'ISREDIT DELETE 'MR
+    'ISREDIT LINE_BEFORE 'MR' = DATALINE "'INSRT3'"'
+    END
+ FINIT:
+   /*'ISREDIT RESET' */
+   ZEDSMSG = 'CHECK CHGS'
+   ZEDLMSG = 'CHECK CHANGES BEFORE SAVING (OR CANCEL)'
+   SIGNAL WRITIT
+ EXITRC4:
+   ZEDSMSG = 'NO JCL FOUND'
+   ZEDLMSG = 'MEMBER DOES NOT CONTAIN JCL (// IN COLUME 1-2)'
+   SIGNAL WRITIT
+ EXITRC8:
+   ZEDSMSG = 'INSERT FAILED'
+   ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+   SIGNAL WRITIT
+ WRITIT:
+   'ISPEXEC SETMSG MSG(ISRZ000)'
+   EXIT 4
+###END CTGV90JC
+$$$BEG IJC
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA IJC      - INSERT JOB CARD AT TOP OF DS FROM ISPF VARS    */
+/* CEMHELP IJC      -  ISPF EDIT MACRO BASED, INSERTS THE JOBCARD    */
+/* CEMHELP          - INFO SAVED TO ISPF VARS. IF THE VARS DO NOT    */
+/* CEMHELP          - EXIST, YOU MUST ENTER INTO EDIT ON A DSN OR    */
+/* CEMHELP          - PDS MEMBER WITH A VALID JOBCARD STATEMENT.     */
+/* CEMHELP          - USING THE ICJI COMMAND, OUTLINE THE JOBCARD    */
+/* CEMHELP          - STATEMENT WITH 'CC' LIN COMMANDS AND ENTER TO  */
+/* CEMHELP          - SAVE THIS JOBCARD TO PROFILE VARS.  THEN USE   */
+/* CEMHELP          - THIS COMMAND TO PLACE THE JOBCARD AT THE TARGET*/
+/* CEMHELP          - LINE DESIGNATED WITH 'B' OR 'A', OR OMIT THE   */
+/* CEMHELP          - LINE TARGET AND THE JOBCARD IS PLACED AT TOP.  */
+/* CEMHELP END                                                       */
+ ADDRESS ISPEXEC
+ "ISREDIT MACRO NOPROCESS"
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISPEXEC VGET (MYJCTOT) PROFILE"
+ IF RC ^= 0 THEN SIGNAL NOPOOL
+ L=MYJCTOT
+/* TRACE I */
+ "ISREDIT PROCESS RANGE A,B"
+ IF RC ^= 0 THEN DO
+   DST = 'LINE_AFTER'
+   CNDST = 0
+   END
+   ELSE DO
+  "ISREDIT (DST) = RANGE_CMD"
+   IF DST = 'B' THEN DST = 'LINE_BEFORE'
+    ELSE DST = 'LINE_AFTER'
+   "ISREDIT (CNDST) = LINENUM .ZFRANGE"
+   END
+ AMP = '&'
+ SCNVAL = 'OFF'
+  'ISREDIT (SCNVAL) = SCAN'
+  'ISREDIT SCAN OFF'
+  ERRIND = 0
+ DO I = L TO 1 BY -1
+  DVAL='MYJC'||I
+  "ISPEXEC VGET ("VALUE('DVAL')") PROFILE"
+  P1=VALUE(DVAL)
+  A = LENGTH(P1)
+  B = POS(AMP,P1)
+  DO WHILE B > 0
+   P1 = SUBSTR(P1,1,B)||SUBSTR(P1,B)
+   B = POS(AMP,P1,B+2)
+   END
+  'ISREDIT 'DST CNDST' = DATALINE "'P1'"'
+  IF RC < 5 THEN ITERATE
+  "ISREDIT "DST CNDST" = DATALINE '"P1"'"
+  IF RC < 5 THEN ERRIND = 1
+  END
+ 'ISREDIT SCAN 'SCNVAL
+ IF ERRIND ^= 0 THEN SIGNAL INVDATA
+ EXIT
+NOTSEQ:
+  ZEDSMSG = "DSORG INVALID"
+  ZEDLMSG = "IJC MACRO REQUIRES PO DATASET SOURCE"
+ SIGNAL WRITIT
+INVDATA:
+  ZEDSMSG = "OMIT INVAL X"
+  ZEDLMSG = "OMITTED INVALID DATA. TRY IJCX OR IJCL"
+ 'ISREDIT SCAN 'SCNVAL
+ SIGNAL WRITIT
+NOPOOL:
+  ZEDSMSG = "NO IJC DATA"
+  ZEDLMSG = "JCL NEEDS TO BE RECORDED WITH IJCI EDITMAC"
+ SIGNAL WRITIT
+SHOWFRMT:
+  ZEDSMSG = "TARGET OMITTED"
+  ZEDLMSG = "IJC MACRO REQUIRES B OR A LINECMD AS TARGET"
+ SIGNAL WRITIT
+NOTIJC:
+  ZEDSMSG = "REQUIRES IJC SOURCE"
+  ZEDLMSG = "PASTE MACRO REQUIRES SOURCE FILE FROM IJC MACRO"
+ WRITIT:
+ "ISPEXEC SETMSG MSG(ISRZ001)"
+###END IJC
+$$$BEG FMTSRCH4
+ /* REXX */
+ /* CEMHELP BEGIN                                                   */
+ /* CEMHELA          -                                              */
+ /* CEMHELP          - TSO BASE, RESTRICTED                         */
+ /* CEMHELP          -                                              */
+ /* CEMHELP END                                                     */
+  ADDRESS ISPEXEC
+  "ISPEXEC CONTROL ERRORS RETURN"
+  "ISREDIT MACRO PROCESS"
+  EDTRC = 0
+  "ISREDIT EXCLUDE ALL"
+  "ISREDIT FIND P'^' 1 72 X ALL"
+  "ISREDIT DELETE X ALL"
+  "ISREDIT EXCLUDE ALL"
+  "ISREDIT FIND 'ISRSUPC' WORD X ALL"
+  "ISREDIT DELETE NX ALL"
+  "ISREDIT FIND 'SEARCH-FOR SUMMARY SECTION' X ALL"
+  "ISREDIT DELETE NX ALL"
+  "ISREDIT FIND 'LINES-FOUND' X ALL"
+  "ISREDIT DELETE NX ALL"
+  "ISREDIT FIND 'PROCESS OPTIONS USED:' X ALL"
+  "ISREDIT DELETE NX ALL"
+  "ISREDIT FIND 'THE FOLLOWING' X ALL"
+  "ISREDIT DELETE NX ALL"
+  /* TRACE ?I */
+"ISREDIT CURSOR = .ZFIRST 1"
+TOPOFLOP:
+  "ISREDIT FIND 'SRCH DSN:' X"
+  IF RC > 0 THEN SIGNAL DONEIT
+  "ISREDIT (MYROW,MYCOL) = CURSOR"
+  IF MYCOL > 1 THEN DO
+  CR=MYROW+0
+   "ISREDIT SHIFT ( "MYROW+0 MYCOL-1
+   END
+  SIGNAL TOPOFLOP
+DONEIT:
+  "ISREDIT RESET"
+EXITRC0:
+ ZEDSMSG = 'FINISHED'
+ ZEDLMSG = 'FINISHED FORMAT SRCHFOR LISTING'
+ SIGNAL WRITIT
+EXITRC4:
+ ZEDSMSG = 'DSN INVALID'
+ ZEDLMSG = 'DSN PROVIDED IS INVALID'
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+###END FMTSRCH4
+$$$BEG SITCHGC
+ /* REXX */
+ /* CEMHELP BEGIN                                                   */
+ /* CEMHELA          -                                              */
+ /* CEMHELP          - TSO BASE, RESTRICTED                         */
+ /* CEMHELP          -                                              */
+ /* CEMHELP END                                                     */
+  ADDRESS ISPEXEC
+  "ISREDIT MACRO PROCESS"
+  "ISPEXEC CONTROL ERRORS RETURN"
+  ADDRESS ISPEXEC
+ RW ='EJBROLEPRFX IIOPLISTENER JVMCCSIZE JVMCCSTART JVMLEVEL0TRACE '||,
+ 'JVMLEVEL1TRACE JVMLEVEL2TRACE JVMUSERTRACE MAXJVMTCBS MAXOPENTCBS '||,
+ 'MAXXPTCBS TDSUBTASK XEJB'
+ #RW=WORDS(RW)
+ NW='MNIDN MQCONN RACFSYNC SECVFYFREQ TSMAINLIMIT USSHOME'
+ #NW=WORDS(NW)
+ MNIDN.S='MNFREQ'
+ MNIDN.I='NO'
+ MQCONN.S='MNTIME'
+ MQCONN.I='NO'
+ RACFSYNC.S='QUIESTIM'
+ RACFSYNC.I='NO'
+ SECVFYFREQ.S='SECPRFX'
+ SECVFYFREQ.I='NEVER'
+ TSMAINLIMIT.S='TS'
+ TSMAINLIMIT.I='256M'
+ USSHOME.S='USRDELAY'
+ USSHOME.I='/shared_products/cicstsd/r510sys'
+CW='AIBRIDGE AKPFREQ AUTORESETTIME CSDLSRNO EDSALIM FCQRONLY'||,
+' ICVTSD JVMPROFILEDIR MAXSOCKETS MXT PRTYAGE PSTYPE SPCTRXX STATINT'||,
+' STATRCD STNTRXX SYDUMAX TBEXITS TCSWAIT TCTUALOC TRANISO TRDUMAX '||,
+'TRTABSZ TRTRANSZ USRDELAY'
+CW='JVMPROFILEDIR SYDUMAX TRDUMAX TRTABSZ TRTRANSZ'
+  #CW=WORDS(CW)
+  "ISREDIT EXCLUDE ALL"
+  DCT=0
+  DPN=''
+  BCT=0
+  BPN=''
+  CCT=0
+  CHN=''
+  SP15=COPIES(' ',15)
+  SP55=COPIES(' ',55)
+ /* TRACE ?I */
+ DO K = 1 TO #CW
+  NLN=''
+  TMP=WORD(CW,K)
+  "ISREDIT FIND '"TMP"' WORD FIRST X"
+  IF RC \= 0 THEN DO
+   BPN=BPN||' '||TMP
+   BCT=BCT+1
+   ITERATE
+   END
+   CHN=CHN||' '||TMP
+   CCT=CCT+1
+  END
+  "isredit hide x"
+  IF RCT = 0 THEN SIGNAL NORWD
+  ZEDSMSG = 'C#:'CCT' B#:'BCT' D#:'DCT
+  ZEDLMSG = 'CHG:'CHN' :BYP:'BPN' :DUP:'DPN
+  SIGNAL WRITIT
+  EXIT 0
+NORWD:
+  ZEDSMSG = 'NO WORDS REMOVED'
+  ZEDLMSG = 'MEMBER DOES NOT CONTAIN ANY REMOVE WORDS'
+  SIGNAL WRITIT
+EXITRC4:
+  ZEDSMSG = 'NO JCL FOUND'
+  ZEDLMSG = 'MEMBER DOES NOT CONTAIN JCL (// IN COLUME 1-2)'
+  SIGNAL WRITIT
+EXITRC8:
+  ZEDSMSG = 'INSERT FAILED'
+  ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+  SIGNAL WRITIT
+WRITIT:
+  'ISPEXEC SETMSG MSG(ISRZ000)'
+  EXIT 4
+/*
+AIBRIDGE=AUTO,    AUTOINST FOR BRIDGE YES OR AUTO       *
+AUTORESETTIME=IMMEDIATE, TIME RESET IMM,YES,NO          *
+JVMPROFILEDIR=/SHARED_PRODUCTS/CICSTSD/R510SYS/JVMPROFIL*
+ES,                                                     *
+MAXSOCKETS=25000, LIMIT ON NUMBER OF ACTIVE SOCKETS     *
+RACFSYNC=NO,      RACF ENF 71 SIGNALS YES OR NO         *
+SYDUMAX=3,        NO OF SYSDUMPS TO BE TAKEN    @BA64292*
+TCSWAIT=02,       TC SHUTDOWN WAIT IN MIN       @BA59626*
+TRDUMAX=8,        NO OF TRANDUMPS TO BE TAKEN   @BA64292*
+TRTABSZ=8192,     INTERNAL TRACE TABLE SIZE IN 1K BYTES *
+TRTRANSZ=128,     TRANSACTION DUMP TRACE SIZE           *
+TSMAINLIMIT=256M,    TS MAIN LIM ABOVEBAR 1M-32G        *
+USSHOME=/SHARED_PRODUCTS/CICSTSD/R510SYS,               *
+*/
+###END SITCHGC
+$$$BEG SITCHGN
+ /* REXX */
+ /* CEMHELP BEGIN                                                   */
+ /* CEMHELA          -                                              */
+ /* CEMHELP          - TSO BASE, RESTRICTED                         */
+ /* CEMHELP          -                                              */
+ /* CEMHELP END                                                     */
+  ADDRESS ISPEXEC
+  "ISREDIT MACRO PROCESS"
+  "ISPEXEC CONTROL ERRORS RETURN"
+  ADDRESS ISPEXEC
+ RW ='EJBROLEPRFX IIOPLISTENER JVMCCSIZE JVMCCSTART JVMLEVEL0TRACE '||,
+ 'JVMLEVEL1TRACE JVMLEVEL2TRACE JVMUSERTRACE MAXJVMTCBS MAXOPENTCBS '||,
+ 'MAXXPTCBS TDSUBTASK XEJB'
+ #RW=WORDS(RW)
+ NW='MNIDN MQCONN RACFSYNC SECVFYFREQ TSMAINLIMIT USSHOME'
+ #NW=WORDS(NW)
+ MNIDN.S='MNFREQ'
+ MNIDN.I='NO'
+ MQCONN.S='MNTIME'
+ MQCONN.I='NO'
+ RACFSYNC.S='QUIESTIM'
+ RACFSYNC.I='NO'
+ SECVFYFREQ.S='SECPRFX'
+ SECVFYFREQ.I='NEVER'
+ TSMAINLIMIT.S='TS'
+ TSMAINLIMIT.I='256M'
+ USSHOME.S='USRDELAY'
+ USSHOME.I='/shared_products/cicstsd/r510sys'
+ CW='AKPFREQ AUTORESETTIME EDSALIM ICVTSD MXT PRTYAGE SPCTRXX '||,
+     'STATINT STATRCD STNTRXX TBEXITS TCTUALOC TRANISO TRTRANSZ '||,
+     'JVMPROFILEDIR PSTYPE USRDELAY CSDLSRNO EDSALIM FCQRONLY '||,
+     'TRTABSZ TRTRANSZ AIBRIDGE MAXSOCKETS SYDUMAX TCSWAIT '||,
+     'TRDUMAX'
+  #CW=WORDS(CW)
+  "ISREDIT EXCLUDE ALL"
+  DCT=0
+  DPN=''
+  BCT=0
+  BPN=''
+  CCT=0
+  CHN=''
+  SP15=COPIES(' ',15)
+  SP55=COPIES(' ',55)
+ /* TRACE ?I */
+ DO K = 1 TO #NW
+  NLN=''
+  TMP=WORD(NW,K)
+  "ISREDIT FIND '"TMP"' WORD FIRST X"
+  IF RC = 0 THEN DO
+   DPN=DPN||' '||TMP
+   DCT=DCT+1
+   ITERATE
+   END
+  INTERPRET 'S4W='TMP'.S'
+  "ISREDIT FIND '"S4W"' WORD FIRST X"
+  IF RC \= 0 THEN DO
+   BPN=BPN||' '||TMP
+   BCT=BCT+1
+   ITERATE
+   END
+  "ISREDIT (FR,FC) = CURSOR"
+  INTERPRET 'IWD='TMP'.I'
+  NLN=SP15||TMP||'='||IWD||','||SP55
+  NLN=LEFT(NLN,71)||'*'
+  "ISREDIT LINE_AFTER "FR" = '"NLN"'"
+   CHN=CHN||' '||TMP
+   CCT=CCT+1
+  END
+  IF RCT = 0 THEN SIGNAL NORWD
+  ZEDSMSG = 'C#:'CCT' B#:'BCT' D#:'DCT
+  ZEDLMSG = 'CHG:'CHN' :BYP:'BPN' :DUP:'DPN
+  SIGNAL WRITIT
+  EXIT 0
+NORWD:
+  ZEDSMSG = 'NO WORDS REMOVED'
+  ZEDLMSG = 'MEMBER DOES NOT CONTAIN ANY REMOVE WORDS'
+  SIGNAL WRITIT
+EXITRC4:
+  ZEDSMSG = 'NO JCL FOUND'
+  ZEDLMSG = 'MEMBER DOES NOT CONTAIN JCL (// IN COLUME 1-2)'
+  SIGNAL WRITIT
+EXITRC8:
+  ZEDSMSG = 'INSERT FAILED'
+  ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+  SIGNAL WRITIT
+WRITIT:
+  'ISPEXEC SETMSG MSG(ISRZ000)'
+  EXIT 4
+/*
+AIBRIDGE=AUTO,    AUTOINST FOR BRIDGE YES OR AUTO       *
+AUTORESETTIME=IMMEDIATE, TIME RESET IMM,YES,NO          *
+JVMPROFILEDIR=/SHARED_PRODUCTS/CICSTSD/R510SYS/JVMPROFIL*
+ES,                                                     *
+MAXSOCKETS=25000, LIMIT ON NUMBER OF ACTIVE SOCKETS     *
+RACFSYNC=NO,      RACF ENF 71 SIGNALS YES OR NO         *
+SYDUMAX=3,        NO OF SYSDUMPS TO BE TAKEN    @BA64292*
+TCSWAIT=02,       TC SHUTDOWN WAIT IN MIN       @BA59626*
+TRDUMAX=8,        NO OF TRANDUMPS TO BE TAKEN   @BA64292*
+TRTABSZ=8192,     INTERNAL TRACE TABLE SIZE IN 1K BYTES *
+TRTRANSZ=128,     TRANSACTION DUMP TRACE SIZE           *
+TSMAINLIMIT=256M,    TS MAIN LIM ABOVEBAR 1M-32G        *
+USSHOME=/SHARED_PRODUCTS/CICSTSD/R510SYS,               *
+*/
+###END SITCHGN
+$$$BEG SITCHGS
+ /* REXX */
+ /* CEMHELP BEGIN                                                   */
+ /* CEMHELA          -                                              */
+ /* CEMHELP          - TSO BASE, RESTRICTED                         */
+ /* CEMHELP          -                                              */
+ /* CEMHELP END                                                     */
+  ADDRESS ISPEXEC
+  "ISREDIT MACRO PROCESS"
+  "ISPEXEC CONTROL ERRORS RETURN"
+  ADDRESS ISPEXEC
+ RW ='EJBROLEPRFX IIOPLISTENER JVMCCSIZE JVMCCSTART JVMLEVEL0TRACE '||,
+ 'JVMLEVEL1TRACE JVMLEVEL2TRACE JVMUSERTRACE MAXJVMTCBS MAXOPENTCBS '||,
+ 'MAXXPTCBS TDSUBTASK XEJB'
+ #RW=WORDS(RW)
+ NW='MNIDN RACFSYNC SECVFYFREQ TSMAINLIMIT USSHOME MQCONN'
+ #NW=WORDS(NW)
+ CW='AKPFREQ AUTORESETTIME EDSALIM ICVTSD MXT PRTYAGE SPCTRXX '||,
+     'STATINT STATRCD STNTRXX TBEXITS TCTUALOC TRANISO TRTRANSZ '||,
+     'JVMPROFILEDIR PSTYPE USRDELAY CSDLSRNO EDSALIM FCQRONLY '||,
+     'TRTABSZ TRTRANSZ AIBRIDGE MAXSOCKETS SYDUMAX TCSWAIT '||,
+     'TRDUMAX'
+  #CW=WORDS(CW)
+  "ISREDIT EXCLUDE ALL"
+  RCT=0
+  RMVD=''
+ DO I = 1 TO #RW
+  TMP=WORD(RW,I)
+  "ISREDIT FIND '"TMP"' WORD X ALL"
+  "ISREDIT (FCT) = FIND_COUNTS"
+  IF FCT > 0 THEN RMVD=RMVD||' '||TMP
+  RCT=RCT+FCT
+  END
+  IF RCT = 0 THEN SIGNAL NORWD
+  "ISREDIT DELETE NX ALL"
+  ZEDSMSG = 'REMOVED 'RCT' WORDS:'
+  ZEDLMSG = 'REMOVED:'RMVD
+  SIGNAL WRITIT
+  EXIT 0
+NORWD:
+  ZEDSMSG = 'NO WORDS REMOVED'
+  ZEDLMSG = 'MEMBER DOES NOT CONTAIN ANY REMOVE WORDS'
+  SIGNAL WRITIT
+EXITRC4:
+  ZEDSMSG = 'NO JCL FOUND'
+  ZEDLMSG = 'MEMBER DOES NOT CONTAIN JCL (// IN COLUME 1-2)'
+  SIGNAL WRITIT
+EXITRC8:
+  ZEDSMSG = 'INSERT FAILED'
+  ZEDLMSG = 'INSERTION OF LAST LINE FAILED'
+  SIGNAL WRITIT
+WRITIT:
+  'ISPEXEC SETMSG MSG(ISRZ000)'
+  EXIT 4
+/*
+AIBRIDGE=AUTO,    AUTOINST FOR BRIDGE YES OR AUTO       *
+AUTORESETTIME=IMMEDIATE, TIME RESET IMM,YES,NO          *
+JVMPROFILEDIR=/SHARED_PRODUCTS/CICSTSD/R510SYS/JVMPROFIL*
+ES,                                                     *
+MAXSOCKETS=25000, LIMIT ON NUMBER OF ACTIVE SOCKETS     *
+RACFSYNC=NO,      RACF ENF 71 SIGNALS YES OR NO         *
+SYDUMAX=3,        NO OF SYSDUMPS TO BE TAKEN    @BA64292*
+TCSWAIT=02,       TC SHUTDOWN WAIT IN MIN       @BA59626*
+TRDUMAX=8,        NO OF TRANDUMPS TO BE TAKEN   @BA64292*
+TRTABSZ=8192,     INTERNAL TRACE TABLE SIZE IN 1K BYTES *
+TRTRANSZ=128,     TRANSACTION DUMP TRACE SIZE           *
+TSMAINLIMIT=256M,    TS MAIN LIM ABOVEBAR 1M-32G        *
+USSHOME=/SHARED_PRODUCTS/CICSTSD/R510SYS,               *
+*/
+###END SITCHGS
+$$$BEG MAC1
+/***** REXX *********************************************************/
+/****  COPIED FROM TTED.TSK.P.GENAPP.EXEC(MAC1)                  ****/
+/**** LICENSED MATERIALS - PROPERTY OF IBM                       ****/
+/****                                                            ****/
+/**** "RESTRICTED MATERIALS OF IBM"                              ****/
+/****                                                            ****/
+/**** CB12                                                       ****/
+/****                                                            ****/
+/**** (C) COPYRIGHT IBM CORP. 2011, 2013 ALL RIGHTS RESERVED     ****/
+/****                                                            ****/
+/****  US GOVERNMENT USERS RESTRICTED RIGHTS - USE, DUPLICATION, ****/
+/****  OR DISCLOSURE RESTRICTED BY GSA ADP SCHEDULE              ****/
+/****  CONTRACT WITH IBM CORPORATION                             ****/
+/****                                                            ****/
+/****                                                            ****/
+SAY "GOOBYE TOO SOON";EXIT
+Address Ispexec
+"Isredit Macro (TRACE)"
+ TRACE ?I
+"ISPEXEC VGET (CICSHLQ CPSMHLQ USRHLQ COBOLHLQ DB2HLQ CEEHLQ)"
+"ISPEXEC VGET (CSDNAME DB2RUN SQLID DB2SSID DB2DBID)"
+"ISPEXEC VGET (TORAPPL AORAPPL DORAPPL TORSYSID AORSYSID DORSYSID)"
+"ISPEXEC VGET (CMASAPPL CMASYSID WUIAPPL WUISYSID WSIMHLQ)"
+"ISPEXEC VGET (PDSDBRM PDSMACP PDSLOAD PDSMSGS WSIMLOG WSIMSTL)"
+"ISPEXEC VGET (KSDSCUS KSDSPOL SOURCEX LOADX MAPCOPX DBRMLIX)"
+"ISPEXEC VGET (WSIMLGX WSIMWSX WSIMMSX)"
+"ISREDIT FIND ' JOB ' FIRST"
+IF RC = 0 THEN DO
+ "ISREDIT (BEGROW) = CURSOR"
+ IF RC = 0 THEN DO
+  "ISREDIT DELETE "BEGROW
+  END
+ "ISREDIT IJC"
+ END
+"Isredit Change '<CICSHLQ>' '"CICSHLQ"' All"
+"Isredit Change '<CPSMHLQ>' '"CPSMHLQ"' All"
+"Isredit Change '<USRHLQ>' '"USRHLQ"' All"
+"Isredit Change '<COBOLHLQ>' '"COBOLHLQ"' All"
+"Isredit Change '<DB2HLQ>' '"DB2HLQ"' All"
+"Isredit Change '<CEEHLQ>' '"CEEHLQ"' All"
+"Isredit Change '<CSDNAME>' '"CSDNAME"' All"
+"Isredit Change '<DB2RUN>' '"DB2RUN"' All"
+"Isredit Change '<SQLID>' '"SQLID"' All"
+"Isredit Change '<DB2SSID>' '"DB2SSID"' All"
+"Isredit Change '<DB2DBID>' '"DB2DBID"' All"
+"Isredit Change '<TORAPPL>' '"TORAPPL"' All"
+"Isredit Change '<AORAPPL>' '"AORAPPL"' All"
+"Isredit Change '<DORAPPL>' '"DORAPPL"' All"
+"Isredit Change '<TORSYSID>' '"TORSYSID"' All"
+"Isredit Change '<AORSYSID>' '"AORSYSID"' All"
+"Isredit Change '<DORSYSID>' '"DORSYSID"' All"
+"Isredit Change '<CMASAPPL>' '"CMASAPPL"' All"
+"Isredit Change '<CMASYSID>' '"CMASYSID"' All"
+"Isredit Change '<WUIAPPL>' '"WUIAPPL"' All"
+"Isredit Change '<WUISYSID>' '"WUISYSID"' All"
+"Isredit Change '<WSIMHLQ>' '"WSIMHLQ"' All"
+"Isredit Change '<PDSDBRM>' '"WSIMHLQ"' All"
+"Isredit Change '<PDSMACP>' '"WSIMHLQ"' All"
+"Isredit Change '<PDSLOAD>' '"WSIMHLQ"' All"
+"Isredit Change '<PDSMSGS>' '"WSIMHLQ"' All"
+"Isredit Change '<WSIMLOG>' '"WSIMHLQ"' All"
+"Isredit Change '<WSIMSTL>' '"WSIMHLQ"' All"
+"Isredit Change '<KSDSPOL>' '"KSDSPOL"' All"
+"Isredit Change '<KSDSCUS>' '"KSDSCUS"' All"
+"Isredit Change '<SOURCEX>' '"SOURCEX"' All"
+"Isredit Change '<LOADX>' '"LOADX"' All"
+"Isredit Change '<MAPCOPX>' '"MAPCOPX"' All"
+"Isredit Change '<DBRMLIX>' '"DBRMLIX"' All"
+"Isredit Change '<WSIMWSX>' '"WSIMWSX"' All"
+"Isredit Change '<WSIMMSX>' '"WSIMMSX"' All"
+"Isredit Change '<WSIMLGX>' '"WSIMLGX"' All"
+
+"Isredit (memnme) = MEMBER"
+If memnme = 'ONCICS' Then memnme = '#' || memnme
+                     Else memnme = '@' || memnme
+"Isredit Replace" memnme ".zfirst .zlast"
+"Isredit CANCEL"
+
+Exit 0
+###END MAC1
+$$$BEG AA
+/* REXX */
+TRACE I
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO PROCESS"
+ "ISREDIT IJC"
+###END AA
+$$$BEG FMT2POS
+/* REXX */
+ ADDRESS ISPEXEC
+ /* TRACE I? */
+ 'ISREDIT MACRO NOPROCESS (MXLNG)'
+ IF MXLNG = '' THEN DO
+  MXLNG = 71
+  END
+  ELSE DO
+  IF DATATYPE(MXLNG) ^= 'NUM' THEN SIGNAL LINELNG_ERR
+  END
+ IF MXLNG < 14 THEN SIGNAL LNG2SM_ERR
+ 'ISREDIT (DW) = DATA_WIDTH'
+ DW=DW
+ 'ISREDIT (LRECL) = LRECL'
+ LRECL=LRECL
+ IF MXLNG > LRECL THEN SIGNAL LINELNG_ERR
+ 'ISREDIT PROCESS RANGE S SS'
+ IF RC ^= 0 THEN SIGNAL CURPOS
+ 'ISREDIT (FIRST) = LINENUM .ZFRANGE'
+ 'ISREDIT (LAST)  = LINENUM .ZLRANGE'
+ COL=1
+ SIGNAL TRYLST
+CURPOS:
+ 'ISREDIT (ROW,COL)= CURSOR'
+ IF ROW < 1 THEN SIGNAL SHOWFRMT
+ IF COL < 1 THEN COL=1
+ FIRST=ROW
+ LAST=ROW
+TRYLST:
+ DCOL=COL
+/* "ISREDIT MACRO PROCESS"
+ "ISREDIT (I) = LINENUM .ZFIRST"
+ "ISREDIT (I) = LINENUM .ZFIRST"
+ IF I = 0 THEN SIGNAL LINENUM_ERR
+ 'ISREDIT SCAN OFF'                */
+ HALF_MXLNG=MXLNG%2
+ I = FIRST
+ J=I
+ LNCT=1
+TOPOFLOP:
+ "ISREDIT (MYLNE) = LINE "I
+ LPOS=LENGTH(STRIP(MYLNE,'T'))
+ IF LPOS <= MXLNG THEN SIGNAL LST_LL
+ CPOS=1
+ SIGNAL NXT_SUBLN1
+NXT_SUBLN:
+ LPOS=LENGTH(STRIP(MYLNE,'T'))
+ IF LPOS <= MXLNG THEN SIGNAL LST_LL
+NXT_SUBLN1:
+ HLNE=MYLNE
+ LTMP=SUBSTR(MYLNE,CPOS,MXLNG)
+ LSPP=LASTPOS(' ',LTMP)
+ IF LSPP < HALF_MXLNG THEN DO
+  LL.LNCT=LTMP
+  LSPP=MXLNG
+  END
+  ELSE LL.LNCT=SUBSTR(LTMP,1,LSPP)
+ LNCT=LNCT+1
+ CPOS=LSPP+1
+ MYLNE=SUBSTR(MYLNE,CPOS)
+ SIGNAL NXT_SUBLN
+LST_LL:
+  LL.LNCT=MYLNE
+  LNCT=LNCT+1
+NXTLNE:
+ I= I+1
+ "ISREDIT (LST) = LINENUM .ZLAST"
+ IF I > LST THEN SIGNAL EXITRC4
+ IF I <= LAST THEN SIGNAL TOPOFLOP
+REPLN:
+ I=J
+ CLLCT=1
+ SIGNAL REPLN2
+REPLN1:
+ I=I+1
+REPLN2:
+ IF CLLCT >= LNCT THEN SIGNAL DONALL
+ TMP=LL.CLLCT
+ "ISREDIT LINE "I" = (TMP)"
+ CLLCT=CLLCT+1
+ IF I < LAST THEN SIGNAL REPLN1
+ IF CLLCT >= LNCT THEN SIGNAL DONALL
+LN_AFT_LL:
+ TMP=LL.CLLCT
+ "ISREDIT LINE_AFTER "I" = DATALINE (TMP)"
+ I = I+1
+ CLLCT=CLLCT+1
+ IF CLLCT < LNCT THEN SIGNAL LN_AFT_LL
+DONALL:
+ RETURN 0
+EXITRC4:
+LINELNG_ERR:
+ ZEDSMSG = 'LINELNG ERR'
+ ZEDLMSG = 'LINELNG IS INVALID OR IN ERROR'
+ SIGNAL WRITIT
+ERROR8:
+ ZEDSMSG = 'AMP ERROR'
+ ZEDLMSG = 'AMP ERROR ENCOUNTERED'
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+ RETURN 8
+DBLAMP: PROCEDURE EXPOSE MYLNE
+   A = LENGTH(MYLNE)
+   B = POS(AMP,MYLNE)
+   DO WHILE B > 0
+    MYLNE = SUBSTR(MYLNE,1,B)||SUBSTR(MYLNE,B)
+    B = POS(AMP,MYLNE,B+2)
+    END
+   RETURN
+###END FMT2POS
+$$$BEG LCTO
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELP LCTL     - RESTRICTED - OLD VERSION LCTL                  */
+/* CEMHELP          - WILL PERFORM A LISTC LVL ON THE DSN WHICH IS   */
+/* CEMHELP          - SELECTED BY USING THE POSITION OF THE CURSOR   */
+/* CEMHELP          - WITHIN A DSN TO DELIMIT THE GENERIC PORTION OF */
+/* CEMHELP          - THE DSN.  THE RESULT WILL INTERPRETED AND A    */
+/* CEMHELP          - PANEL WITH EACH DSN WILL BE PRESENTED.  YOU    */
+/* CEMHELP          - CAN S OR E (EDIT) A DSN OR B TO BROWSE IT.     */
+/* CEMHELP          - IF THE DSN IS A VSAM FILE, IT WILL BE DUMPED   */
+/* CEMHELP          - TO THE SCREEN.                                 */
+/* CEMHELP END                                                       */
+ ARG MCMD
+ ADDRESS ISPEXEC
+ 'ISREDIT MACRO NOPROCESS'
+/*
+TTED.TSK.P.TCEM.CNTL,DISP=SHR
+             TTED.TSK.P.TCEM.CNTL,DISP=SHR
+//    DD       DSN=TTED.TSK.P.TCEM.CNTL,DISP=SHR
+// DSN=TTED.TSK.P.TCEM.CNTL,DISP=SHR,DSN=TTEP.TSK.P.TCEM.ABC,DISP=SHR
+ */
+ 'ISREDIT PROCESS RANGE S'
+ IF RC = 0 THEN SIGNAL INVDSN
+ 'ISREDIT (ROW,COL) = CURSOR'
+ OCOL=COL
+ 'ISREDIT (DLNE) = LINE 'ROW
+ RDLNE = REVERSE(SUBSTR(DLNE,1,OCOL))
+ LRDLNE = LENGTH(RDLNE)
+ FP = VERIFY(RDLNE,'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890@#$.')
+ IF FP = 0 THEN FP = 1
+  ELSE FP = (LRDLNE - FP) + 2
+ SLSTP=POS('.',DLNE,COL)
+ IF SLSTP = 0 THEN SIGNAL FULLNAME
+ LQL=SLSTP-COL
+ IF LQL > 8 THEN SIGNAL INVDSN
+ DLNE=SUBSTR(DLNE,FP,SLSTP-FP)
+ LCTLNG = LENGTH(DLNE)
+ IF LCTLNG > 44 THEN SIGNAL INVDSN
+ IF LCTLNG ^> 1 THEN SIGNAL INVDSN
+ OURDSN = DLNE
+ ADDRESS TSO
+ X = OUTTRAP('MLDSNL.')
+ "LISTC LVL("OURDSN")"
+ X = OUTTRAP('OFF')
+ J = MLDSNL.0
+ N = 0
+ DO I = 1 TO J
+  LDP = POS('NONVSAM',MLDSNL.I)
+  IF LDP = 0 THEN DO
+   LDP = POS('CLUSTER',MLDSNL.I)
+   IF LDP = 0 THEN DO
+    LDP = POS('GDG',MLDSNL.I)
+    IF LDP = 0 THEN ITERATE
+    END
+   END
+  N = N+1
+  TDSNL.N = SUBSTR(MLDSNL.I,LDP,1)
+  BP = POS(OURDSN,MLDSNL.I)
+  NDSNL.N = STRIP(SUBSTR(MLDSNL.I,BP),'T')
+  END
+  IF N = 0 THEN SIGNAL EXITRC8
+  IF MCMD = 'LCTE' THEN SIGNAL DOTEMP
+  IF N > 99 THEN DO
+   SAY 'LISTC ARG WAS 'OURDSN
+   SAY 'MORE THAN 99 DATASETS FOUND.  LIMIT FOR DISPLAY EXCEEDED'
+   SAY ' ENTER D TO DISPLAY FIRST 99 DATASETS'
+   SAY ' ENTER W TO WRITE THE ENTIRE 'N' DATASETS TO TEMP DSN'
+   SAY ' OR ENTER ANYOTHER KEY TO EXIT'
+   RESP = 'W'
+   PULL RESP
+   IF RESP = 'W' THEN SIGNAL DOTEMP
+   IF RESP ^= 'D' THEN SIGNAL EXITRC4
+   END
+  MYTYTOT = N
+  A = 'NDSNL'
+  DO I = 1 TO MYTYTOT
+   INTERPRET A||I ' = 'NDSNL||'.I'
+   "ISPEXEC VPUT ("A||I") ASIS"
+   END
+  MYTYP = A
+  CMD = ''
+ 'ISPEXEC VPUT (MYTYP MYTYTOT CMD) ASIS'
+ CALL DSPINP MYTYP MYTYTOT
+ 'ISPEXEC VGET (CMD) ASIS'
+ IF CMD ^= 'SAVE' THEN SIGNAL EXITIT
+DOTEMP:
+   TGTDSN = SYSVAR(SYSUID)||'.SYM3.DATA'
+   IF SYSDSN("'"TGTDSN"'") = 'OK' THEN XPRM='SHR REUSE'
+  ELSE XPRM="NEW BLKSIZE (3600) DSORG(PS) RECFM(F,B) SPACE(1,1)"||,
+   "TRACKS LRECL(80) CATALOG"
+ "ALLOC FI(I) DA('"TGTDSN"') "XPRM
+ "EXECIO * DISKW I (STEM NDSNL. FINIS"
+ "FREE FI(I)"
+ ADDRESS ISPEXEC
+ "ISPEXEC EDIT DATASET('"TGTDSN"')"
+EXITIT:
+ ZEDSMSG = 'LDSNL DONE'
+ ZEDLMSG = 'LISTC LVL OF DSN COMPLETED SUCCESSFULLY'
+ SIGNAL WRITIT
+EXITRC4:
+ ZEDSMSG = 'ABORT SELECTED'
+ ZEDLMSG = 'LISTC LVL OF DSN ABORT SELECTED'
+ SIGNAL WRITIT
+EXITRC8:
+ ZEDSMSG = 'NO DATASETS'
+ ZEDLMSG = 'LISTC LVL OF DSN RETURNED NO DATASET'
+ SIGNAL WRITIT
+FULLNAME:
+ ZEDSMSG = 'FULL DSN INVLD'
+ ZEDLMSG = 'LISTC LVL OF FULL DSN INVALID'
+ SIGNAL WRITIT
+INVDSN:
+ ZEDSMSG = 'DSN INVALID'
+ ZEDLMSG = 'DSN PROVIDED IS INVALID'
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+###END LCTO
+$$$BEG WHOHASDS
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA WHOHASDS - WHOHASIT FOR A SELECTED DSN                    */
+/* CEMHELP WHOHASDS - ISPF EDIT MACRO BASED, 'JUMP WHOHASIT' USED TO */
+/* CEMHELP          - RUN THE WHOHASIT EXEC ON THE DSN               */
+/* CEMHELP          - SELECTED BY USING:                             */
+/* CEMHELP          - 'S' LINE CMD FOR DSN  STARTING IN POS1 OR      */
+/* CEMHELP          - 'S' LINE CMD FOR DSN FOLLOWING 'DSN=' IN LINE  */
+/* CEMHELP          - DSN INDICATED BY POSITION ANYWHERE WITHIN A    */
+/* CEMHELP          -  LINE WITH A 'DSN=' LITERAL                    */
+/* CEMHELP          - SPECIFICALLY BY CURSOR POSITION ON FIRST CHAR  */
+/* CEMHELP          -  OF A DSN                                      */
+/* CEMHELP END                                                       */
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ 'ISREDIT MACRO NOPROCESS'
+ ARG LNNO
+ IF DATATYPE(LNNO) ^= 'NUM' THEN LNNO=''
+ CALL STRIPDSN LNNO
+ XC=RESULT
+ IF XC ^= 0 THEN SIGNAL INVDSN
+ "ISPEXEC VGET (OURDSN DLNE) ASIS"
+ CALL WHOHASIT OURDSN
+ RETURN 0
+INVDSN:
+EXITRC4:
+ ZEDSMSG = 'DSN INVALID'
+ ZEDLMSG = 'DSN PROVIDED IS INVALID'
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+###END WHOHASDS
+$$$BEG LDSL
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA LDSL     - DSLIST LVL FOR SELECTED DSN AND FORMAT TO PANEL*/
+/* CEMHELP LDSL     - ISPF EDIT MACRO BASED, 'DSLIST LVL' SELECTION  */
+/* CEMHELP          - WILL PERFORM LISTDS  LVL ON THE DSN WHICH IS   */
+/* CEMHELP          - SELECTED BY USING THE POSITION OF THE CURSOR   */
+/* CEMHELP          - WITHIN A DSN TO DELIMIT THE GENERIC PORTION OF */
+/* CEMHELP          - THE DSN.  THE RESULT WILL BE DISPLAYED BY THE  */
+/* CEMHELP          - NORMAL DSLIST PANEL (WITH ALL EXPECTED CMDS    */
+/* CEMHELP          - AVAILABLE TO YOU).                             */
+/* CEMHELP END                                                       */
+ /* TRACE I */
+ ARG MCMD DLNE
+ ADDRESS ISPEXEC
+ IF MCMD = '' THEN MCMD = 'LDSL'
+ EXECSEL = MCMD              /*ISRDSLST */
+ "ISPEXEC VPUT (EXECSEL) ASIS"
+ IF DLNE ^= '' THEN SIGNAL ARNDMAC
+ 'ISREDIT MACRO NOPROCESS'
+ IF RC ^= 0 THEN SIGNAL INVOKTN
+/*                               "ISPSTART CMD(%DSLIST) 'TTED.TSK.S'"
+ TTED.TSK.S.NOTHING.X
+ TCEM.SYM1.DATA
+TTED.TSK.P.TCEM.CNTL,DISP=SHR
+             TTED.TSK.P.TCEM.CNTL,DISP=SHR
+//    DD       DSN=TTED.TSK.P.TCEM.CNTL,DISP=SHR
+// DSN=TTED.TSK.P.TCEM.CNTL,DISP=SHR,DSN=TTEP.TSK.P.TCEM.ABC,DISP=SHR
+ */
+ /* TRACE ?I */
+ 'ISREDIT PROCESS RANGE S'
+ IF RC = 0 THEN SIGNAL INVDSN
+ 'ISREDIT (ROW,COL) = CURSOR'
+ OCOL=COL
+ 'ISREDIT (DLNE) = LINE 'ROW
+ RDLNE = REVERSE(SUBSTR(DLNE,1,OCOL))
+ LRDLNE = LENGTH(RDLNE)
+ FP = VERIFY(RDLNE,'ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890@#$.')
+ IF FP = 0 THEN FP = 1
+  ELSE FP = (LRDLNE - FP) + 2
+ SLSTP=POS('.',DLNE,COL)
+ IF SLSTP = 0 THEN SIGNAL FULLNAME
+ LLSTP=LASTPOS('.',DLNE,COL)
+ IF LLSTP ^= 0 THEN SIGNAL OKQUALS
+ OKCAN1 = 'WARNING! USE OF 1 DSN QUALIFIER WILL'
+ OKCAN2 = 'RESULT IN EXCESSIVE DISPLAY! OK OR CANCEL'
+ OKCANX = 'C'
+ ADDRESS ISPEXEC 'VPUT (OKCAN1 OKCAN2 OKCANX) ASIS'
+ CALL OKCANBOX
+ IF RESULT ^= 0 THEN SIGNAL EXITRC4
+ ADDRESS ISPEXEC 'VGET (OKCANX) ASIS'
+ IF OKCANX ^= 'O' THEN SIGNAL EXITRC4
+OKQUALS:
+ LQL=SLSTP-COL
+ IF LQL > 8 THEN SIGNAL INVDSN
+ DLNE=SUBSTR(DLNE,FP,SLSTP-FP)
+ LCTLNG = LENGTH(DLNE)
+ IF LCTLNG > 44 THEN SIGNAL INVDSN
+ IF LCTLNG ^> 1 THEN SIGNAL INVDSN
+ARNDMAC:
+ OURDSN = DLNE
+ "ISPEXEC SELECT PGM(ISRDSLST) PARM(DSL '"OURDSN"')"
+ XC = RC
+ IF XC ^= 0 THEN SIGNAL EXITRC8
+EXITIT:
+ ZEDSMSG = MCMD' DONE'
+ ZEDLMSG = XCMD' COMPLETED.'
+ SIGNAL WRITIT
+EXITRC4:
+ ZEDSMSG = 'ABORT SELECTED'
+ ZEDLMSG = 'LISTC LVL OF DSN ABORT SELECTED'
+ SIGNAL WRITIT
+EXITRC8:
+ ZEDSMSG = 'NO DATASETS'
+ ZEDLMSG = 'LISTC LVL OF DSN RETURNED NO DATASET'
+ SIGNAL WRITIT
+INVOKTN:
+ ZEDSMSG = 'INVOKATION'
+ ZEDLMSG = 'EDIT MACRO INVOKED WITH PARM NOT ALLOWED'
+ SIGNAL WRITIT
+FULLNAME:
+ ZEDSMSG = 'FULL DSN INVLD'
+ ZEDLMSG = 'LISTC LVL OF FULL DSN INVALID'
+ SIGNAL WRITIT
+CANTPROC:
+ ZEDSMSG = 'ALLOC ERROR'
+ ZEDLMSG = 'TARGET DS FOR SAVE COULD NOT BE ALLOCATED'
+ DO I = 1 TO N
+  SAY NDSNL.I
+  END
+ SIGNAL WRITIT
+INVDSN:
+ ZEDSMSG = 'DSN INVALID'
+ ZEDLMSG = 'DSN PROVIDED IS INVALID'
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+###END LDSL
+$$$BEG DSNLSPLT
+T$P=SRC.D#####Z;APLID=WORD(T$P,1);TYP=SUBSTR(WORD(T$P,4),2,1)
+PLTPI = SUBSTR(WORD(T$P,3),3,2)
+IF TYP = "E" THEN TYP="D"
+S$="TTE"TYP".TSK.F.R320."APLID".TABLE.SOURCE(DFHPLT"PLTPI")"
+"ISPEXEC VGET (EDTRC) ASIS"
+EDTRC = 0;ADDRESS ISPEXEC "VPUT (EDTRC) ASIS"
+ADDRESS ISPEXEC "EDIT DATASET('"S$"') MACRO(SRCH4HG)"
+ADDRESS ISPEXEC "VGET (EDTRC) ASIS"
+IF EDTRC = 0 THEN SAY APLID
+###END DSNLSPLT
+$$$BEG SRCH4HG
+/* REXX */
+ ADDRESS ISPEXEC
+ "ISREDIT MACRO PROCESS"
+ "ISREDIT FIND 'AGGPLT' FIRST"
+ IF RC ^= 0 THEN SIGNAL NF1
+ EDTRC = 0
+ MYSM4SRC = 'FOUND'
+ SIGNAL DOCANC
+NF1:
+ MYSM4SRC = 'NOTFOUND'
+ EDTRC = 8
+DOCANC:
+"ISPEXEC VPUT (EDTRC) ASIS"
+ "ISREDIT CANCEL"
+###END SRCH4HG
+$$$BEG MYNS
+ /* REXX */
+ ADDRESS ISPEXEC
+ "ISPEXEC CONTROL ERRORS RETURN"
+ "ISREDIT MACRO PROCESS"
+ "ISREDIT EXCLUDE .ZFIRST .ZLAST ALL"
+ "ISREDIT FIND 'EZZ2587I O' 1 10 X ALL"
+ "ISREDIT DELETE X ALL"
+ "ISREDIT EXCLUDE .ZFIRST .ZLAST ALL"
+ "ISREDIT FIND 'EZZ2587I OMDB' 1 13 X ALL"
+ "ISREDIT FIND 'EZZ2587I OMEG' 1 13 X ALL"
+ "ISREDIT FIND 'EZZ2587I OM2' 1 12 X ALL"
+ "ISREDIT FIND 'EZZ2587I OSAS' 1 13 X ALL"
+ "ISREDIT FIND 'EZZ2587I OPSB' 1 13 X ALL"
+ "ISREDIT FIND 'EZZ2587I OPSE' 1 13 X ALL"
+ "ISREDIT DELETE NX ALL"
+ /*  TRACE ?I */
+  FFX = 'FF'X
+  MYAREA=''
+  MYAREA#=FFX
+  "ISREDIT (LSTLN) = LINENUM .ZLAST"
+  IF RC = 4 THEN DO
+   CALL MSGBOX 'NO CICS REGIONS ACTIVE?'
+   SIGNAL DOCAN
+   END
+WRITIT:
+ 'ISPEXEC SETMSG MSG(ISRZ000)'
+
+  DO I = 1 TO LSTLN
+   "ISREDIT (TMP) = LINE "I
+   TMP4 = WORD(TMP,4)
+   PARSE VAR TMP4 . '..' TMP4 .
+   TMP1 = WORD(TMP,2)||' '||TMP4
+   MYAREA=MYAREA||FFX||TMP1
+   END
+/*   TRACE ?I */
+  EXECSEL='MYNS'
+  'ISPEXEC VPUT (EXECSEL MYAREA MYAREA#) ASIS'
+  CALL DSPNSTBL "QUIET"
+DOCAN:
+   "ISREDIT CANCEL"
+   TEMPFIN:
+   EXIT
+###END MYNS
+$$$BEG PPASTE
+/* REXX */
+/* CEMHELP BEGIN                                                     */
+/* CEMHELA PPASTE   - PRINTS LAST CUT DATA TO JRP4181                */
+/* CEMHELP PPASTE   - ISPF EDIT MACRO BASED, 'PRINT PASTE', USED TO  */
+/* CEMHELP          - PRINT YOUR LAST CUT MEMBER SELECTION TO THE    */
+/* CEMHELP          - JRP4181 PRINTER.                               */
+/* CEMHELP END                                                       */
+/*  TRACE I */
+ CALL PNTPST 'JRPPNT'
+###END PPASTE
